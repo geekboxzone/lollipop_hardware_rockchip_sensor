@@ -31,8 +31,8 @@
 
 
 // #define ENABLE_DEBUG_LOG
-#include <cutils/custom_log.h>
-//#include "custom_log.h"
+//#include <cutils/custom_log.h>
+#include "custom_log.h"
 
 __BEGIN_DECLS
 
