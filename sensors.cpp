@@ -1,20 +1,34 @@
 /*
- * Copyright (C) 2008 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+  *  (c) Copyright Bosch Sensortec GmbH 2011
+  
+  *   Redistribution and use in source and binary forms, with or without  
+  *   modification, are permitted provided that the following conditions are
+  *   met:
+  
+  *  	 * Redistributions of source code must retain the above copyright
+  *  	    notice, this list of conditions and the following disclaimer.
+  *  	 * Redistributions in binary form must reproduce the above
+  *  	    copyright notice, this list of conditions and the following
+  *  	    disclaimer in the documentation and/or other materials provided
+  *  	    with the distribution.
+  *  	 * Neither the name of the author nor the names of its
+  *  	    contributors may be used to endorse or promote products derived
+  *  	    from this software without specific prior written permission.
+  
+ 
+  *   THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
+  *   WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+  *   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
+  *   ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
+  *   BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+  *   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+  *   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+  *   BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+  *   WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+  *   OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+  *   IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
 
-#define LOG_TAG "Sensors"
 
 #include <hardware/sensors.h>
 #include <fcntl.h>
@@ -23,305 +37,320 @@
 #include <math.h>
 #include <poll.h>
 #include <pthread.h>
-#include <stdlib.h>
-
 #include <linux/input.h>
-#include <linux/akm8973.h>
+#include <cutils/atomic.h>
+#include <cutils/log.h>
 
-#include <utils/Atomic.h>
-#include <utils/Log.h>
+#define DEBUG_SENSOR		1
 
-#include "sensors.h"
-
-#include "LightSensor.h"
-#include "ProximitySensor.h"
-#include "AkmSensor.h"
-#include "GyroSensor.h"
-
-/*****************************************************************************/
-
-#define DELAY_OUT_TIME 0x7FFFFFFF
-
-#define LIGHT_SENSOR_POLLTIME    2000000000
-
-
-#define SENSORS_ACCELERATION     (1<<ID_A)
-#define SENSORS_MAGNETIC_FIELD   (1<<ID_M)
-#define SENSORS_ORIENTATION      (1<<ID_O)
-#define SENSORS_LIGHT            (1<<ID_L)
-#define SENSORS_PROXIMITY        (1<<ID_P)
-#define SENSORS_GYROSCOPE        (1<<ID_GY)
-
-#define SENSORS_ACCELERATION_HANDLE     0
-#define SENSORS_MAGNETIC_FIELD_HANDLE   1
-#define SENSORS_ORIENTATION_HANDLE      2
-#define SENSORS_LIGHT_HANDLE            3
-#define SENSORS_PROXIMITY_HANDLE        4
-#define SENSORS_GYROSCOPE_HANDLE        5
-
-#define AKM_FTRACE 0
-#define AKM_DEBUG 0
-#define AKM_DATA 0
-
-/*****************************************************************************/
-
-/* The SENSORS Module */
-static const struct sensor_t sSensorList[] = {
-        { "KR3DM 3-axis Accelerometer",
-          "STMicroelectronics",
-          1, SENSORS_ACCELERATION_HANDLE,
-          SENSOR_TYPE_ACCELEROMETER, RANGE_A, RESOLUTION_A, 0.23f, 20000, { } },
-        { "AK8973 3-axis Magnetic field sensor",
-          "Asahi Kasei Microdevices",
-          1, SENSORS_MAGNETIC_FIELD_HANDLE,
-          SENSOR_TYPE_MAGNETIC_FIELD, 2000.0f, CONVERT_M, 6.8f, 30000, { } },
-        { "AK8973 Orientation sensor",
-          "Asahi Kasei Microdevices",
-          1, SENSORS_ORIENTATION_HANDLE,
-          SENSOR_TYPE_ORIENTATION, 360.0f, CONVERT_O, 7.8f, 30000, { } },
-        { "GP2A Light sensor",
-          "Sharp",
-          1, SENSORS_LIGHT_HANDLE,
-          SENSOR_TYPE_LIGHT, 3000.0f, 1.0f, 0.75f, 0, { } },
-        { "GP2A Proximity sensor",
-          "Sharp",
-          1, SENSORS_PROXIMITY_HANDLE,
-          SENSOR_TYPE_PROXIMITY, 5.0f, 5.0f, 0.75f, 0, { } },
-        { "K3G Gyroscope sensor",
-          "STMicroelectronics",
-          1, SENSORS_GYROSCOPE_HANDLE,
-          SENSOR_TYPE_GYROSCOPE, RANGE_GYRO, CONVERT_GYRO, 6.1f, 1200, { } },
-};
-
-
-static int open_sensors(const struct hw_module_t* module, const char* id,
-                        struct hw_device_t** device);
-
-
-static int sensors__get_sensors_list(struct sensors_module_t* module,
-                                     struct sensor_t const** list) 
-{
-        *list = sSensorList;
-        return ARRAY_SIZE(sSensorList);
-}
-
-static struct hw_module_methods_t sensors_module_methods = {
-        open: open_sensors
-};
-
-struct sensors_module_t HAL_MODULE_INFO_SYM = {
-        common: {
-                tag: HARDWARE_MODULE_TAG,
-                version_major: 1,
-                version_minor: 0,
-                id: SENSORS_HARDWARE_MODULE_ID,
-                name: "Samsung Sensor module",
-                author: "Samsung Electronic Company",
-                methods: &sensors_module_methods,
-        },
-        get_sensors_list: sensors__get_sensors_list,
-};
+#define CONVERT                     (GRAVITY_EARTH / 256)
+#define CONVERT_X                   -(CONVERT)
+#define CONVERT_Y                   -(CONVERT)
+#define CONVERT_Z                   (CONVERT)
+#define SENSOR_NAME		"bma150"
+#define INPUT_DIR               "/dev/input"
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 
 struct sensors_poll_context_t {
-    struct sensors_poll_device_t device; // must be first
-
-        sensors_poll_context_t();
-        ~sensors_poll_context_t();
-    int activate(int handle, int enabled);
-    int setDelay(int handle, int64_t ns);
-    int pollEvents(sensors_event_t* data, int count);
-
-private:
-    enum {
-        light           = 0,
-        proximity       = 1,
-        akm             = 2,
-        gyro            = 3,
-        numSensorDrivers,
-        numFds,
-    };
-
-    static const size_t wake = numFds - 1;
-    static const char WAKE_MESSAGE = 'W';
-    struct pollfd mPollFds[numFds];
-    int mWritePipeFd;
-    SensorBase* mSensors[numSensorDrivers];
-
-    int handleToDriver(int handle) const {
-        switch (handle) {
-            case ID_A:
-            case ID_M:
-            case ID_O:
-                return akm;
-            case ID_P:
-                return proximity;
-            case ID_L:
-                return light;
-            case ID_GY:
-                return gyro;
-        }
-        return -EINVAL;
-    }
+	struct sensors_poll_device_t device; 
+	int fd;
+	char class_path[256];
 };
 
-/*****************************************************************************/
-
-sensors_poll_context_t::sensors_poll_context_t()
+static int set_sysfs_input_attr(char *class_path,
+				const char *attr, char *value, int len)
 {
-    mSensors[light] = new LightSensor();
-    mPollFds[light].fd = mSensors[light]->getFd();
-    mPollFds[light].events = POLLIN;
-    mPollFds[light].revents = 0;
+	char path[256];
+	int fd;
 
-    mSensors[proximity] = new ProximitySensor();
-    mPollFds[proximity].fd = mSensors[proximity]->getFd();
-    mPollFds[proximity].events = POLLIN;
-    mPollFds[proximity].revents = 0;
+	if (class_path == NULL || *class_path == '\0'
+	    || attr == NULL || value == NULL || len < 1) {
+		return -EINVAL;
+	}
+	snprintf(path, sizeof(path), "%s/%s", class_path, attr);
+	path[sizeof(path) - 1] = '\0';
+	fd = open(path, O_RDWR);
+	if (fd < 0) {
+		return -errno;
+	}
+	if (write(fd, value, len) < 0) {
+		close(fd);
+		return -errno;
+	}
+	close(fd);
 
-    mSensors[akm] = new AkmSensor();
-    mPollFds[akm].fd = mSensors[akm]->getFd();
-    mPollFds[akm].events = POLLIN;
-    mPollFds[akm].revents = 0;
-
-    mSensors[gyro] = new GyroSensor();
-    mPollFds[gyro].fd = mSensors[gyro]->getFd();
-    mPollFds[gyro].events = POLLIN;
-    mPollFds[gyro].revents = 0;
-
-    int wakeFds[2];
-    int result = pipe(wakeFds);
-    LOGE_IF(result<0, "error creating wake pipe (%s)", strerror(errno));
-    fcntl(wakeFds[0], F_SETFL, O_NONBLOCK);
-    fcntl(wakeFds[1], F_SETFL, O_NONBLOCK);
-    mWritePipeFd = wakeFds[1];
-
-    mPollFds[wake].fd = wakeFds[0];
-    mPollFds[wake].events = POLLIN;
-    mPollFds[wake].revents = 0;
+	return 0;
 }
-
-sensors_poll_context_t::~sensors_poll_context_t() {
-    for (int i=0 ; i<numSensorDrivers ; i++) {
-        delete mSensors[i];
-    }
-    close(mPollFds[wake].fd);
-    close(mWritePipeFd);
-}
-
-int sensors_poll_context_t::activate(int handle, int enabled) {
-    int index = handleToDriver(handle);
-    if (index < 0) return index;
-    int err =  mSensors[index]->enable(handle, enabled);
-    if (enabled && !err) {
-        const char wakeMessage(WAKE_MESSAGE);
-        int result = write(mWritePipeFd, &wakeMessage, 1);
-        LOGE_IF(result<0, "error sending wake message (%s)", strerror(errno));
-    }
-    return err;
-}
-
-int sensors_poll_context_t::setDelay(int handle, int64_t ns) {
-
-    int index = handleToDriver(handle);
-    if (index < 0) return index;
-    return mSensors[index]->setDelay(handle, ns);
-}
-
-int sensors_poll_context_t::pollEvents(sensors_event_t* data, int count)
-{
-    int nbEvents = 0;
-    int n = 0;
-
-    do {
-        // see if we have some leftover from the last poll()
-        for (int i=0 ; count && i<numSensorDrivers ; i++) {
-            SensorBase* const sensor(mSensors[i]);
-            if ((mPollFds[i].revents & POLLIN) || (sensor->hasPendingEvents())) {
-                int nb = sensor->readEvents(data, count);
-                if (nb < count) {
-                    // no more data for this sensor
-                    mPollFds[i].revents = 0;
-                }
-                count -= nb;
-                nbEvents += nb;
-                data += nb;
-            }
-        }
-
-        if (count) {
-            // we still have some room, so try to see if we can get
-            // some events immediately or just wait if we don't have
-            // anything to return
-            n = poll(mPollFds, numFds, nbEvents ? 0 : -1);
-            if (n<0) {
-                LOGE("poll() failed (%s)", strerror(errno));
-                return -errno;
-            }
-            if (mPollFds[wake].revents & POLLIN) {
-                char msg;
-                int result = read(mPollFds[wake].fd, &msg, 1);
-                LOGE_IF(result<0, "error reading from wake pipe (%s)", strerror(errno));
-                LOGE_IF(msg != WAKE_MESSAGE, "unknown message on wake queue (0x%02x)", int(msg));
-                mPollFds[wake].revents = 0;
-            }
-        }
-        // if we have events and space, go read them
-    } while (n && count);
-
-    return nbEvents;
-}
-
-/*****************************************************************************/
 
 static int poll__close(struct hw_device_t *dev)
 {
-    sensors_poll_context_t *ctx = (sensors_poll_context_t *)dev;
-    if (ctx) {
-        delete ctx;
-    }
-    return 0;
+	sensors_poll_context_t *ctx = (sensors_poll_context_t *)dev;
+	if (ctx) {
+		delete ctx;
+	}
+
+	return 0;
 }
 
-static int poll__activate(struct sensors_poll_device_t *dev,
+static int poll__activate(struct sensors_poll_device_t *device,
         int handle, int enabled) {
-    sensors_poll_context_t *ctx = (sensors_poll_context_t *)dev;
-    return ctx->activate(handle, enabled);
+
+	sensors_poll_context_t *dev = (sensors_poll_context_t *)device;
+	char buffer[20];
+
+	int bytes = sprintf(buffer, "%d\n", enabled);
+
+	set_sysfs_input_attr(dev->class_path,"enable",buffer,bytes);
+
+	return 0;
 }
 
-static int poll__setDelay(struct sensors_poll_device_t *dev,
+
+
+static int poll__setDelay(struct sensors_poll_device_t *device,
         int handle, int64_t ns) {
-    sensors_poll_context_t *ctx = (sensors_poll_context_t *)dev;
-    return ctx->setDelay(handle, ns);
+
+	sensors_poll_context_t *dev = (sensors_poll_context_t *)device;
+	char buffer[20];
+	int ms=ns/1000000;
+	int bytes = sprintf(buffer, "%d\n", ms);
+
+	set_sysfs_input_attr(dev->class_path,"delay",buffer,bytes);
+
+	return 0;
+
 }
 
-static int poll__poll(struct sensors_poll_device_t *dev,
+static int poll__poll(struct sensors_poll_device_t *device,
         sensors_event_t* data, int count) {
-    sensors_poll_context_t *ctx = (sensors_poll_context_t *)dev;
-    return ctx->pollEvents(data, count);
+	
+	struct input_event event;
+	int ret;
+	sensors_poll_context_t *dev = (sensors_poll_context_t *)device;
+
+	if (dev->fd < 0)
+	return 0;
+
+	while (1) {
+	
+		ret = read(dev->fd, &event, sizeof(event));
+
+		if (event.type == EV_ABS) {
+
+			switch (event.code) {
+			case ABS_X:
+				data->acceleration.y =
+						-event.value * CONVERT_Y;
+				break;
+			case ABS_Y:
+				data->acceleration.x =
+						event.value * CONVERT_X;
+				break;
+			case ABS_Z:
+				data->acceleration.z =
+						-event.value * CONVERT_Z;
+				break;
+			}
+		} else if (event.type == EV_SYN) {
+
+			data->timestamp =
+			(int64_t)((int64_t)event.time.tv_sec*1000000000
+					+ (int64_t)event.time.tv_usec*1000);
+			data->sensor = 0;
+			data->type = SENSOR_TYPE_ACCELEROMETER;
+			data->acceleration.status = SENSOR_STATUS_ACCURACY_HIGH;
+			
+		
+#ifdef DEBUG_SENSOR
+			LOGD("Sensor data: t x,y,x: %f %f, %f, %f\n",
+					data->timestamp / 1000000000.0,
+							data->acceleration.x,
+							data->acceleration.y,
+							data->acceleration.z);
+#endif
+			
+		return 1;	
+
+		}
+	}
+	
+	return 0;
 }
 
-/*****************************************************************************/
 
-/** Open a new instance of a sensor device using name */
-static int open_sensors(const struct hw_module_t* module, const char* id,
-                        struct hw_device_t** device)
+static int sensor_get_class_path(sensors_poll_context_t *dev)
 {
-        int status = -EINVAL;
-        sensors_poll_context_t *dev = new sensors_poll_context_t();
+	char *dirname = "/sys/class/input";
+	char buf[256];
+	int res;
+	DIR *dir;
+	struct dirent *de;
+	int fd = -1;
+	int found = 0;
 
-        memset(&dev->device, 0, sizeof(sensors_poll_device_t));
+	dir = opendir(dirname);
+	if (dir == NULL)
+		return -1;
 
-        dev->device.common.tag = HARDWARE_DEVICE_TAG;
-        dev->device.common.version  = 0;
-        dev->device.common.module   = const_cast<hw_module_t*>(module);
-        dev->device.common.close    = poll__close;
-        dev->device.activate        = poll__activate;
-        dev->device.setDelay        = poll__setDelay;
-        dev->device.poll            = poll__poll;
+	while((de = readdir(dir))) {
+		if (strncmp(de->d_name, "input", strlen("input")) != 0) {
+		    continue;
+        	}
 
-        *device = &dev->device.common;
-        status = 0;
+		sprintf(dev->class_path, "%s/%s", dirname, de->d_name);
+		snprintf(buf, sizeof(buf), "%s/name", dev->class_path);
 
-        return status;
+		fd = open(buf, O_RDONLY);
+		if (fd < 0) {
+		    continue;
+		}
+		if ((res = read(fd, buf, sizeof(buf))) < 0) {
+		    close(fd);
+		    continue;
+		}
+		buf[res - 1] = '\0';
+		if (strcmp(buf, SENSOR_NAME) == 0) {
+		    found = 1;
+		    close(fd);
+		    break;
+		}
+
+		close(fd);
+		fd = -1;
+	}
+	closedir(dir);
+
+	if (found) {
+		return 0;
+	}else {
+		*dev->class_path = '\0';
+		return -1;
+	}
+
 }
 
+static int open_input_device(void)
+{
+	char *filename;
+	int fd;
+	DIR *dir;
+	struct dirent *de;
+	char name[80];
+	char devname[256];
+	dir = opendir(INPUT_DIR);
+	if (dir == NULL)
+		return -1;
+
+	strcpy(devname, INPUT_DIR);
+	filename = devname + strlen(devname);
+	*filename++ = '/';
+
+	while ((de = readdir(dir))) {
+		if (de->d_name[0] == '.' &&
+		    (de->d_name[1] == '\0' ||
+		     (de->d_name[1] == '.' && de->d_name[2] == '\0')))
+			continue;
+		strcpy(filename, de->d_name);
+		fd = open(devname, O_RDONLY);
+		if (fd < 0) {
+			continue;
+		}
+
+
+		if (ioctl(fd, EVIOCGNAME(sizeof(name) - 1), &name) < 1) {
+			name[0] = '\0';
+		}
+
+		if (!strcmp(name, SENSOR_NAME)) {
+#ifdef DEBUG_SENSOR
+		LOGD("devname is %s \n", devname);
+#endif
+		} else {
+			close(fd);
+			continue;
+		}
+		closedir(dir);
+
+		return fd;
+
+	}
+	closedir(dir);
+
+	return -1;
+}
+
+static const struct sensor_t sSensorList[] = {
+
+        { 	"BMA150 3-axis Accelerometer",
+                "Bosch",
+                1, 0,
+                SENSOR_TYPE_ACCELEROMETER, 
+		4.0f*9.81f, 
+		(4.0f*9.81f)/256.0f, 
+		0.2f, 
+		0, 
+		{ } 
+	},
+
+};
+
+static int open_sensors(const struct hw_module_t* module, const char* name,
+        struct hw_device_t** device);
+
+static int sensors__get_sensors_list(struct sensors_module_t* module,
+        struct sensor_t const** list)
+{
+	*list = sSensorList;
+
+	return ARRAY_SIZE(sSensorList);
+}
+
+static struct hw_module_methods_t sensors_module_methods = {
+	open : open_sensors
+};
+
+extern "C" const struct sensors_module_t HAL_MODULE_INFO_SYM = {
+	common :{
+		tag : HARDWARE_MODULE_TAG,
+		version_major : 1,
+		version_minor : 0,
+		id : SENSORS_HARDWARE_MODULE_ID,
+		name : "Bosch sensor module",
+		author : "Bosch Sensortec",
+		methods : &sensors_module_methods,
+		dso : NULL,
+		reserved : {},
+	},
+
+	get_sensors_list : sensors__get_sensors_list
+};
+
+static int open_sensors(const struct hw_module_t* module, const char* name,
+        struct hw_device_t** device)
+{ 
+	int status = -EINVAL;
+
+	sensors_poll_context_t *dev = new sensors_poll_context_t();
+	memset(&dev->device, 0, sizeof(sensors_poll_device_t));
+
+	dev->device.common.tag = HARDWARE_DEVICE_TAG;
+	dev->device.common.version  = 0;
+	dev->device.common.module   = const_cast<hw_module_t*>(module);
+	dev->device.common.close    = poll__close;
+	dev->device.activate        = poll__activate;
+	dev->device.setDelay        = poll__setDelay;
+	dev->device.poll            = poll__poll;
+
+
+	if(sensor_get_class_path(dev) < 0) {
+		
+		LOGD("g sensor get class path error \n");
+		return -1;	
+	}
+
+	dev->fd = open_input_device();
+	*device = &dev->device.common;
+	status = 0;
+
+	return status;
+}

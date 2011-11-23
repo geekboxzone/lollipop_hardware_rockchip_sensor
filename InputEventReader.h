@@ -40,6 +40,9 @@ public:
     ssize_t fill(int fd);
     ssize_t readEvent(input_event const** events);
     void next();
+
+private:
+    void dumpEvents(input_event const * events, int eventsNum);
 };
 
 /*****************************************************************************/

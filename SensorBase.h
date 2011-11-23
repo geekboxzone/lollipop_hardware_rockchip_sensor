@@ -31,11 +31,10 @@ class SensorBase {
 protected:
     const char* dev_name;
     const char* data_name;
-    char        input_name[PATH_MAX];
     int         dev_fd;
     int         data_fd;
 
-    int openInput(const char* inputName);
+    static int openInput(const char* inputName);
     static int64_t getTimestamp();
 
 
@@ -56,7 +55,6 @@ public:
     virtual int readEvents(sensors_event_t* data, int count) = 0;
     virtual bool hasPendingEvents() const;
     virtual int getFd() const;
-    virtual int getPollTime() { return -1; }
     virtual int setDelay(int32_t handle, int64_t ns);
     virtual int enable(int32_t handle, int enabled) = 0;
 };

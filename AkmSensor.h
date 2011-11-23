@@ -23,7 +23,7 @@
 #include <sys/types.h>
 
 
-#include "sensors.h"
+#include "nusensors.h"
 #include "SensorBase.h"
 #include "InputEventReader.h"
 
@@ -37,9 +37,13 @@ public:
     virtual ~AkmSensor();
 
     enum {
-        Accelerometer   = 0,
-        MagneticField   = 1,
-        Orientation     = 2,
+		
+        //Accelerometer   = 0,
+        //MagneticField   = 1,
+        //Orientation     = 2,
+	
+		MagneticField	= 0,
+		Orientation 	= 1,
         numSensors
     };
 
@@ -50,8 +54,6 @@ public:
 
 private:
     int update_delay();
-    int loadAKMLibrary();
-    void *mLibAKM;
     uint32_t mEnabled;
     uint32_t mPendingMask;
     InputEventCircularReader mInputReader;

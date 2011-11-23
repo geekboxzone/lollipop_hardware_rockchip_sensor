@@ -36,9 +36,7 @@ SensorBase::SensorBase(
     : dev_name(dev_name), data_name(data_name),
       dev_fd(-1), data_fd(-1)
 {
-    if (data_name) {
-        data_fd = openInput(data_name);
-    }
+    data_fd = openInput(data_name);
 }
 
 SensorBase::~SensorBase() {
@@ -67,9 +65,6 @@ int SensorBase::close_device() {
 }
 
 int SensorBase::getFd() const {
-    if (!data_name) {
-        return dev_fd;
-    }
     return data_fd;
 }
 
@@ -114,7 +109,6 @@ int SensorBase::openInput(const char* inputName) {
                 name[0] = '\0';
             }
             if (!strcmp(name, inputName)) {
-                strcpy(input_name, filename);
                 break;
             } else {
                 close(fd);

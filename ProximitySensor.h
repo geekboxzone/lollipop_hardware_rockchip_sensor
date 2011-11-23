@@ -22,7 +22,7 @@
 #include <sys/cdefs.h>
 #include <sys/types.h>
 
-#include "sensors.h"
+#include "nusensors.h"
 #include "SensorBase.h"
 #include "InputEventReader.h"
 
