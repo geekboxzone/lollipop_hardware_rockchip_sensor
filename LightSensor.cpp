@@ -21,11 +21,9 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <sys/select.h>
-
-#include <linux/lightsensor.h>
-
 #include <cutils/log.h>
 
+#include "isl29028.h"
 #include "LightSensor.h"
 
 /*****************************************************************************/

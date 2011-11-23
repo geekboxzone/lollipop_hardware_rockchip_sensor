@@ -27,7 +27,6 @@
 #include <cutils/log.h>
 
 #include "InputEventReader.h"
-#include "nusensors.h"
 
 /*****************************************************************************/
 
@@ -35,13 +34,11 @@ struct input_event;
 
 InputEventCircularReader::InputEventCircularReader(size_t numEvents)
     : mBuffer(new input_event[numEvents * 2]),
-
       mBufferEnd(mBuffer + numEvents),
       mHead(mBuffer),
       mCurr(mBuffer),
       mFreeSpace(numEvents)
 {
-    D("Entered : numEvents = %d.", numEvents);
 }
 
 InputEventCircularReader::~InputEventCircularReader()
@@ -60,8 +57,6 @@ ssize_t InputEventCircularReader::fill(int fd)
         }
 
         numEventsRead = nread / sizeof(input_event);
-        // dumpEvents(mHead, numEventsRead);
-        D("nread = %ld, numEventsRead = %d.", nread, numEventsRead);
         if (numEventsRead) {
             mHead += numEventsRead;
             mFreeSpace -= numEventsRead;
@@ -91,16 +86,3 @@ void InputEventCircularReader::next()
         mCurr = mBuffer;
     }
 }
-
-void InputEventCircularReader::dumpEvents(input_event const * events, int eventsNum)
-{
-    D("to dump %d events :", eventsNum);
-    int i = 0;
-    input_event* current = NULL;
-    for ( i = 0; i < eventsNum; i++ )
-    {
-        current = (input_event*)events + i;
-        D("event '%d' : type : 0x%x, code : 0x%x.", i, current->type, current->code);
-    }
-};
-

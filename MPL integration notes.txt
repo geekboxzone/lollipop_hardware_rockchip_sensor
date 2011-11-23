@@ -1,0 +1,53 @@
+Notes on integrating InvenSense MPL with Gingerbread
+----------------------------------------------------
+VERSION : 3.4.0
+
+First things: Make sure the platform is properly set up
+   -- Modify the kernel to include the MPU3050 driver
+     -- Be aware that the MPU3050 driver introduces kernel defines that may conflict with existing drivers
+       -- AK8975 in particular
+     -- Double check the bus attachment for the compass and the MPU
+     -- Double check the mounting matrices
+   -- Check that the modified kernel boots and that /dev/mpu and /dev/mpuirq and /dev/accelirq exist and have usable permissions
+   -- Run the driver selftest to confirm that the driver is working and i2c traffic to the mpu works 
+
+   -- MPL libraries are *processor specific*.  This was a problem for us, as we tried to run a Nexus1 lib on the Ventana platform and the two processors do not have the same FPU.
+
+
+The HAL implementation InvenSense provides for Gingerbread is derived from the implementation 
+provided by Google for NexusS (crespo). A comparison of the InvenSense code and the original Google
+code will be very instructive, especially as regards using additional sensors (like light and pressure).
+
+Any existing HAL implementations need to be disabled.  Check in vendor/ directories as well as the device/ subtree.
+
+To install the InvenSense implementation:
+  1) Copy the provided vendor/invensense directory to your Android tree.
+  2) Modify Android.mk in vendor/invensense/libsensors to generate a sensors.[platform].so appropriate for your platform.
+  3) Copy (or link) the appropriate MPL shared libraries into vendor/invensense/libsensors.
+  4) Copy or link the MPL headers under vendor/invensense/libsensors.
+     -or-
+     Modify the Android.mk in vendor/invensense/libsensors to point to the installed MPL headers on your system.
+
+  5) Run mmm -B vendor/invensense 
+  6) Run make (to regenerate the .img files).
+  7) Update the flash or system disk for your platform using the new img files.
+
+
+The FroYo version of the MPL integration included additional APIs (not specified by Google) which allowed Java apps
+to call MPL management functions.  These APIs are available on Gingerbread via the SysApi class.  Java code for this class
+is included with the RollDice app.  The Java code needs to be added to any project which requires access to the SysApi functions.
+
+As of version 3.3, a gestures extension is also included with the Gingerbread Sensor Manager package.  This extension is not an offical
+Android api, but does attempt to mimic the sensors API.  The implementation of the gesture extension places limitations on integrating
+other sensors (such as light and pressure).  The MPL and its sensors claim IDs 0-16.  No other sensors are allowed to use these IDs.
+
+Additionally, the MPL may make use of several file handles including /dev/mpu, /dev/mpuirq, /dev/accelirq, /dev/compassirq, and /dev/timerirq.
+These filehandles must have appropriate permissions after boot.  Also note that there is some special handling in sensros_mpl for the multiple
+file handles.
+
+
+
+
+
+
+

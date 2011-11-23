@@ -21,17 +21,15 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <sys/select.h>
-
-#include <linux/capella_cm3602.h>
-
 #include <cutils/log.h>
 
+#include "isl29028.h"
 #include "ProximitySensor.h"
 
 /*****************************************************************************/
 
 ProximitySensor::ProximitySensor()
-    : SensorBase(CM_DEVICE_NAME, "proximity"),
+    : SensorBase(PS_DEVICE_NAME, "proximity"),
       mEnabled(0),
       mInputReader(4),
       mHasPendingEvent(false)
@@ -44,7 +42,7 @@ ProximitySensor::ProximitySensor()
     open_device();
 
     int flags = 0;
-    if (!ioctl(dev_fd, CAPELLA_CM3602_IOCTL_GET_ENABLED, &flags)) {
+    if (!ioctl(dev_fd, PSENSOR_IOCTL_GET_ENABLED, &flags)) {
         mEnabled = 1;
         if (flags) {
             setInitialState();
@@ -76,9 +74,9 @@ int ProximitySensor::enable(int32_t, int en) {
             open_device();
         }
         int flags = newState;
-        err = ioctl(dev_fd, CAPELLA_CM3602_IOCTL_ENABLE, &flags);
+        err = ioctl(dev_fd, PSENSOR_IOCTL_ENABLE, &flags);
         err = err<0 ? -errno : 0;
-        LOGE_IF(err, "CAPELLA_CM3602_IOCTL_ENABLE failed (%s)", strerror(-err));
+        LOGE_IF(err, "PSENSOR_IOCTL_ENABLE failed (%s)", strerror(-err));
         if (!err) {
             mEnabled = newState;
             if (en) {
@@ -140,5 +138,5 @@ int ProximitySensor::readEvents(sensors_event_t* data, int count)
 
 float ProximitySensor::indexToValue(size_t index) const
 {
-    return index * PROXIMITY_THRESHOLD_CM;
+    return index * PROXIMITY_THRESHOLD_ISL;
 }
