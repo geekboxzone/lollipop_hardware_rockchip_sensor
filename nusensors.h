@@ -32,9 +32,9 @@
 
 // #define ENABLE_DEBUG_LOG
 //#include <cutils/custom_log.h>
-#define D(...) LOGD(__VA_ARGS__) 
-#define I(...) LOGI(__VA_ARGS__)
-#define E(...) LOGE(__VA_ARGS__)
+#define D(...) 
+#define I(...) 
+#define E(...) 
 
 __BEGIN_DECLS
 
