@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (C) 2011 Samsung
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,131 +22,55 @@
 #include <dirent.h>
 #include <sys/select.h>
 #include <cutils/log.h>
+#include <pthread.h>
 
-#include "isl29028.h"
 #include "LightSensor.h"
 
-/*****************************************************************************/
-
 LightSensor::LightSensor()
-    : SensorBase(LS_DEVICE_NAME, "lightsensor-level"),
-      mEnabled(0),
-      mInputReader(4),
-      mHasPendingEvent(false)
+    : SamsungSensorBase(NULL, "lightsensor-level", ABS_MISC)
 {
-    mPendingEvent.version = sizeof(sensors_event_t);
     mPendingEvent.sensor = ID_L;
     mPendingEvent.type = SENSOR_TYPE_LIGHT;
-    memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
-
-     open_device();
-
-    int flags = 0;
-    if (!ioctl(dev_fd, LIGHTSENSOR_IOCTL_GET_ENABLED, &flags)) {
-        if (flags) {
-            mEnabled = 1;
-            setInitialState();
-        }
-    }
-
-    if (!mEnabled) {
-        close_device();
-    }
+    mPreviousLight = -1;
 }
 
-LightSensor::~LightSensor() {
-}
-
-int LightSensor::setInitialState() {
-    struct input_absinfo absinfo;
-    if (!ioctl(data_fd, EVIOCGABS(EVENT_TYPE_LIGHT), &absinfo)) {
-        mPendingEvent.light = indexToValue(absinfo.value);
-        mHasPendingEvent = true;
-    }
+int LightSensor::handleEnable(int en) {
+    mPreviousLight = -1;
     return 0;
 }
 
-int LightSensor::enable(int32_t, int en) {
-    int flags = en ? 1 : 0;
-    int err = 0;
-    if (flags != mEnabled) {
-        if (!mEnabled) {
-            open_device();
-        }
-        err = ioctl(dev_fd, LIGHTSENSOR_IOCTL_ENABLE, &flags);
-        err = err<0 ? -errno : 0;
-        LOGE_IF(err, "LIGHTSENSOR_IOCTL_ENABLE failed (%s)", strerror(-err));
-        if (!err) {
-            mEnabled = en ? 1 : 0;
-            if (en) {
-                setInitialState();
-            }
-        }
-        if (!mEnabled) {
-            close_device();
-        }
+bool LightSensor::handleEvent(input_event const *event) {
+    if (event->value == -1) {
+        return false;
     }
-    return err;
+    mPendingEvent.light = indexToValue(event->value);
+    if (mPendingEvent.light != mPreviousLight) {
+        mPreviousLight = mPendingEvent.light;
+        return true;
+    }
+    return false;
 }
 
-bool LightSensor::hasPendingEvents() const {
-    return mHasPendingEvent;
-}
-
-int LightSensor::readEvents(sensors_event_t* data, int count)
-{
-    if (count < 1)
-        return -EINVAL;
-
-    if (mHasPendingEvent) {
-        mHasPendingEvent = false;
-        mPendingEvent.timestamp = getTimestamp();
-        *data = mPendingEvent;
-        return mEnabled ? 1 : 0;
-    }
-
-    ssize_t n = mInputReader.fill(data_fd);
-    if (n < 0)
-        return n;
-
-    int numEventReceived = 0;
-    input_event const* event;
-
-    while (count && mInputReader.readEvent(&event)) {
-        int type = event->type;
-        if (type == EV_ABS) {
-            if (event->code == EVENT_TYPE_LIGHT) {
-                if (event->value != -1) {
-                    // FIXME: not sure why we're getting -1 sometimes
-                    mPendingEvent.light = indexToValue(event->value);
-                }
-            }
-        } else if (type == EV_SYN) {
-            mPendingEvent.timestamp = timevalToNano(event->time);
-            if (mEnabled) {
-                *data++ = mPendingEvent;
-                count--;
-                numEventReceived++;
-            }
-        } else {
-            LOGE("LightSensor: unknown event (type=%d, code=%d)",
-                    type, event->code);
-        }
-        mInputReader.next();
-    }
-
-    return numEventReceived;
-}
-
-float LightSensor::indexToValue(size_t index) const
-{
-    static const float luxValues[8] = {
-            10.0, 160.0, 225.0, 320.0,
-            640.0, 1280.0, 2600.0, 10240.0
+float LightSensor::indexToValue(size_t index) const {
+    /* Driver gives a rolling average adc value.  We convert it lux levels. */
+    static const struct adcToLux {
+        size_t adc_value;
+        float  lux_value;
+    } adcToLux[] = {
+        {   50,   10.0 },  /* from    0 -   50 adc, we map to    10.0 lux  */
+        {  280,  160.0 },  /* from   51 -  280 adc, we map to   160.0 lux  */
+        {  320,  225.0 },  /* from  281 -  320 adc, we map to   225.0 lux  */
+        {  350,  320.0 },  /* from  321 -  350 adc, we map to   320.0 lux  */
+        {  400,  640.0 },  /* from  351 -  400 adc, we map to   640.0 lux  */
+        {  520, 1280.0 },  /* from  401 -  520 adc, we map to  1280.0 lux  */
+        {  590, 2600.0 },  /* from  521 -  590 adc, we map to  2600.0 lux  */
+        { 1024, 10240.0 }, /* from  591 - 1024 adc, we map to 10240.0 lux  */
     };
-
-    const size_t maxIndex = sizeof(luxValues)/sizeof(*luxValues) - 1;
-    if (index > maxIndex)
-        index = maxIndex;
-    return luxValues[index];
+    size_t i;
+    for (i = 0; i < ARRAY_SIZE(adcToLux); i++) {
+        if (index <= adcToLux[i].adc_value) {
+            return adcToLux[i].lux_value;
+        }
+    }
+    return adcToLux[ARRAY_SIZE(adcToLux)-1].lux_value;
 }

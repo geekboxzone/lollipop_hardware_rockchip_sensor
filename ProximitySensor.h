@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (C) 2011 Samsung
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,31 +22,30 @@
 #include <sys/cdefs.h>
 #include <sys/types.h>
 
-#include "nusensors.h"
-#include "SensorBase.h"
+#include "sensors.h"
+#include "SamsungSensorBase.h"
 #include "InputEventReader.h"
+
+/* the GP2A is a binary proximity sensor that triggers around 5 cm on
+ * this hardware */
+#define PROXIMITY_THRESHOLD_GP2A  5.0f
 
 /*****************************************************************************/
 
 struct input_event;
 
-class ProximitySensor : public SensorBase {
-    int mEnabled;
-    InputEventCircularReader mInputReader;
-    sensors_event_t mPendingEvent;
-    bool mHasPendingEvent;
+class ProximitySensor:public SamsungSensorBase {
 
-    int setInitialState();
+    virtual int handleEnable(int en);
+    virtual bool handleEvent(input_event const * event);
+
     float indexToValue(size_t index) const;
-
 public:
-            ProximitySensor();
-    virtual ~ProximitySensor();
-    virtual int readEvents(sensors_event_t* data, int count);
+    ProximitySensor();
+    virtual int setDelay(int32_t handle, int64_t ns);
     virtual bool hasPendingEvents() const;
-    virtual int enable(int32_t handle, int enabled);
 };
 
 /*****************************************************************************/
 
-#endif  // ANDROID_PROXIMITY_SENSOR_H
+#endif  /* ANDROID_PROXIMITY_SENSOR_H */

@@ -32,19 +32,17 @@ class InputEventCircularReader
     struct input_event* const mBufferEnd;
     struct input_event* mHead;
     struct input_event* mCurr;
-    ssize_t mFreeSpace;
+    size_t mEvents;
+    size_t mFreeSpace;
 
 public:
     InputEventCircularReader(size_t numEvents);
     ~InputEventCircularReader();
     ssize_t fill(int fd);
-    ssize_t readEvent(input_event const** events);
+    bool readEvent(int fd, input_event const** events);
     void next();
-
-private:
-    void dumpEvents(input_event const * events, int eventsNum);
 };
 
 /*****************************************************************************/
 
-#endif  // ANDROID_INPUT_EVENT_READER_H
+#endif  /* ANDROID_INPUT_EVENT_READER_H */

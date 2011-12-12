@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (C) 2011 Samsung
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,31 +22,24 @@
 #include <sys/cdefs.h>
 #include <sys/types.h>
 
-#include "nusensors.h"
-#include "SensorBase.h"
+#include "sensors.h"
+#include "SamsungSensorBase.h"
 #include "InputEventReader.h"
 
 /*****************************************************************************/
 
 struct input_event;
 
-class LightSensor : public SensorBase {
-    int mEnabled;
-    InputEventCircularReader mInputReader;
-    sensors_event_t mPendingEvent;
-    bool mHasPendingEvent;
+class LightSensor:public SamsungSensorBase {
 
+    float mPreviousLight;
+    virtual int handleEnable(int en);
+    virtual bool handleEvent(input_event const * event);
     float indexToValue(size_t index) const;
-    int setInitialState();
-
 public:
-            LightSensor();
-    virtual ~LightSensor();
-    virtual int readEvents(sensors_event_t* data, int count);
-    virtual bool hasPendingEvents() const;
-    virtual int enable(int32_t handle, int enabled);
+    LightSensor();
 };
 
 /*****************************************************************************/
 
-#endif  // ANDROID_LIGHT_SENSOR_H
+#endif  /* ANDROID_LIGHT_SENSOR_H */
