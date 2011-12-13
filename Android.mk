@@ -47,7 +47,7 @@ LOCAL_C_INCLUDES += $(LOCAL_PATH)/mlsdk/mldmp
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/mlsdk/external/aichi
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/mlsdk/external/akmd
 
-#LOCAL_PREBUILT_LIBS :=  libmplmpu.so libmllite.so libmlplatform.so
+LOCAL_PREBUILT_LIBS :=  libmplmpu.so libmllite.so libmlplatform.so
 LOCAL_SHARED_LIBRARIES := liblog libcutils libutils libdl libmplmpu libmllite libmlplatform
 LOCAL_CPPFLAGS+=-DLINUX=1
 LOCAL_LDFLAGS:=-rdynamic
