@@ -54,6 +54,7 @@ private:
 		*/
         mma             = 0,
         akm             = 1,
+        light,
         numSensorDrivers,
         numFds,
     };
@@ -71,12 +72,11 @@ private:
             case ID_M:
             case ID_O:
                 return akm;
-			/*
-            case ID_P:
-                return proximity;
+			
+            /*case ID_P:
+                return proximity;*/
             case ID_L:
                 return light;
-			*/
         }
         return -EINVAL;
     }
@@ -88,10 +88,6 @@ sensors_poll_context_t::sensors_poll_context_t()
 {
 	D("Entered.");
 	/*
-    mSensors[light] = new LightSensor();
-    mPollFds[light].fd = mSensors[light]->getFd();
-    mPollFds[light].events = POLLIN;
-    mPollFds[light].revents = 0;
 
     mSensors[proximity] = new ProximitySensor();
     mPollFds[proximity].fd = mSensors[proximity]->getFd();
@@ -108,6 +104,11 @@ sensors_poll_context_t::sensors_poll_context_t()
     mPollFds[akm].fd = mSensors[akm]->getFd();
     mPollFds[akm].events = POLLIN;
     mPollFds[akm].revents = 0;
+	
+	mSensors[light] = new LightSensor();
+	mPollFds[light].fd = mSensors[light]->getFd();
+	mPollFds[light].events = POLLIN;
+	mPollFds[light].revents = 0;
 
     int wakeFds[2];
     int result = pipe(wakeFds);

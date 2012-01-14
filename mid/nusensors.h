@@ -66,8 +66,8 @@ int init_nusensors(hw_module_t const* module, hw_device_t** device);
 /** akm sensor(M 和 O sensor) 的控制设备文件路径. */
 #define AKM_DEVICE_NAME     "/dev/akm8975_aot"
 // #define CM_DEVICE_NAME      "/dev/cm3602"
-// #define LS_DEVICE_NAME      "/dev/lightsensor"
-
+#define LS_DEVICE_NAME      "/dev/lightsensor"
+#define LS_DATA_NAME      "rk-lightsensor"
 #define EVENT_TYPE_ACCEL_X          ABS_X
 #define EVENT_TYPE_ACCEL_Y          ABS_Z
 #define EVENT_TYPE_ACCEL_Z          ABS_Y

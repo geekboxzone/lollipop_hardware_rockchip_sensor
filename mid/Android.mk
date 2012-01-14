@@ -36,7 +36,8 @@ LOCAL_SRC_FILES := 						\
 				InputEventReader.cpp	\
 				SensorBase.cpp			\
 				AkmSensor.cpp			\
-				MmaSensor.cpp
+				MmaSensor.cpp	\
+				LightSensor.cpp
 				# ProximitySensor.cpp		\
 				LightSensor.cpp			\
 				

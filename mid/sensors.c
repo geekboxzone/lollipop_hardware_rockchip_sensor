@@ -49,12 +49,12 @@ static const struct sensor_t sSensorList[] = {
                 1, SENSORS_HANDLE_BASE+ID_P,
                 SENSOR_TYPE_PROXIMITY,
                 PROXIMITY_THRESHOLD_CM, PROXIMITY_THRESHOLD_CM,
-                0.5f, 0, { } },
-        { "CM3602 Light sensor",
+                0.5f, 0, { } },*/
+        { "Light sensor",
                 "Capella Microsystems",
                 1, SENSORS_HANDLE_BASE+ID_L,
-                SENSOR_TYPE_LIGHT, 10240.0f, 1.0f, 0.5f, 0, { } },
-		*/
+                SENSOR_TYPE_LIGHT, 9.0f, 1.0f, 0.5f, 0, { } },
+		
 };
 
 static int open_sensors(const struct hw_module_t* module, const char* name,
