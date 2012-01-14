@@ -31,7 +31,7 @@
 /*****************************************************************************/
 
 LightSensor::LightSensor()
-    : SensorBase(LS_DEVICE_NAME, (LS_DATA_NAME),
+    : SensorBase(LS_DEVICE_NAME, LS_DATA_NAME),
       mEnabled(0),
       mInputReader(4),
       mHasPendingEvent(false)
