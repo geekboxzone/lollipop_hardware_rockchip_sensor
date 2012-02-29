@@ -47,10 +47,13 @@ GyroSensor::GyroSensor()
     mPendingEvent.gyro.status = SENSOR_STATUS_ACCURACY_HIGH;
     memset(mPendingEvent.data, 0x00, sizeof(mPendingEvent.data));
 	int err = 0;
-    open_device();
-    err = open_device();	
-	err = err<0 ? -errno : 0;		
-	return;	
+    err = open_device();
+	err = err<0 ? -errno : 0;
+	if(err)
+	{
+		LOGD("%s:%s\n",__func__,strerror(-err));
+		return;
+	}
 	
     int flags = 0;
     if (!ioctl(dev_fd, L3G4200D_IOCTL_GET_ENABLE, &flags)) {
