@@ -27,7 +27,7 @@
 #include <hardware/hardware.h>
 #include <hardware/sensors.h>
 
-#include <linux/mma8452.h>              // 声明驱动为 HAL 提供的功能接口. 应该用更加抽象的文件名.
+#include <linux/mma8452.h>              // IyCwG}6/N* HAL La9)5D9&D\=S?Z. S&8CSC8|<S3iOs5DND<~C{.
 
 
 // #define ENABLE_DEBUG_LOG
@@ -62,7 +62,7 @@ int init_nusensors(hw_module_t const* module, hw_device_t** device);
 /*****************************************************************************/
 
 #define MMA_DEVICE_NAME     GSENSOR_DEV_PATH
-/** akm sensor(M 和 O sensor) 的控制设备文件路径. */
+/** akm sensor(M :M O sensor) 5D?XVFIh18ND<~B7>6. */
 #define AKM_DEVICE_NAME     "/dev/akm8975_aot"
 #define PS_DEVICE_NAME      "/dev/psensor"
 #define LS_DEVICE_NAME      "/dev/lightsensor"
@@ -86,8 +86,8 @@ int init_nusensors(hw_module_t const* module, hw_device_t** device);
 #define EVENT_TYPE_PROXIMITY        ABS_DISTANCE
 #define EVENT_TYPE_LIGHT            ABS_MISC
 
-/** 表征相同的 加速度物理量的时候, Android 上层使用的 数值 和 sensor 数据设备送出的 数值 的 比值. */
-#define ACCELERATION_RATIO_ANDROID_TO_HW        (9.80665 / 1000)
+/** 1mUwO`M,5D <SKY6HNo@mA?5DJ1:r, Android IO2cJ9SC5D J}V5 :M sensor J}>]Ih18KM3v5D J}V5 5D 1HV5. */
+#define ACCELERATION_RATIO_ANDROID_TO_HW        (9.80665 / 1000000)
 
 /*-------------------------------------------------------*/
 // 720 LSG = 1G
