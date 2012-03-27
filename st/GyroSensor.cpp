@@ -167,7 +167,7 @@ again:
             FusionTypeDef fusionData = MEMSAlgLib_Fusion_Update(nineInput);
             float offx, offy, offz;
             MEMSAlgLib_Fusion_Get_GyroOffset(&offx,&offy,&offz);
-            LOGD("gyro offset: %f, %f, %f", offx, offy, offz);
+            //LOGD("gyro offset: %f, %f, %f", offx, offy, offz);
             mPendingEvent.data[0] = (gyrox-offx) * CONVERT_GYRO_X;
             mPendingEvent.data[1] = (gyroy-offy) * CONVERT_GYRO_Y;
             mPendingEvent.data[2] = (gyroz-offz) * CONVERT_GYRO_Z;
