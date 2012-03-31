@@ -37,7 +37,7 @@
 /*****************************************************************************/
 
 GyroSensor::GyroSensor()
-    : SensorBase(GY_DEVICE_NAME, "gyrosensor"),
+    : SensorBase(GY_DEVICE_NAME, "gyro"),
       mEnabled(0),
       mInputReader(32)
 {
@@ -68,30 +68,55 @@ GyroSensor::GyroSensor()
 }
 
 GyroSensor::~GyroSensor() {
+	if (mEnabled) {
+        enable(0, 0);
+    }
 }
+
+int GyroSensor::setInitialState() {
+    struct input_absinfo absinfo_x;
+    struct input_absinfo absinfo_y;
+    struct input_absinfo absinfo_z;
+    float value;
+    if (!ioctl(data_fd, EVIOCGABS(EVENT_TYPE_GYRO_X), &absinfo_x) &&
+        !ioctl(data_fd, EVIOCGABS(EVENT_TYPE_GYRO_X), &absinfo_y) &&
+        !ioctl(data_fd, EVIOCGABS(EVENT_TYPE_GYRO_X), &absinfo_z)) {
+        value = absinfo_x.value;
+        mPendingEvent.data[0] = value * CONVERT_GYRO_X;
+        value = absinfo_x.value;
+        mPendingEvent.data[1] = value * CONVERT_GYRO_Y;
+        value = absinfo_x.value;
+        mPendingEvent.data[2] = value * CONVERT_GYRO_Z;
+        mHasPendingEvent = true;
+    }
+    return 0;
+}
+
 
 int GyroSensor::enable(int32_t, int en)
 {
-    int flags = en ? 1 : 0;
-    int err = 0;
-    if (flags != mEnabled) {
-        if (flags) {
-            err = open_device();	
-			err = err<0 ? -errno : 0;		
-			return err;	
-        }
-        err = ioctl(dev_fd, L3G4200D_IOCTL_SET_ENABLE, &flags);
-        err = err<0 ? -errno : 0;
-        LOGE_IF(err, "L3G4200D_IOCTL_SET_ENABLE failed (%s)", strerror(-err));
-        if (!err) {
-            mEnabled = flags;
-        }
-        if (!flags) {
-            close_device();
-        }
-    }
-    return err;
+	int flags = en ? 1 : 0;
+	int err = 0;
+	if (flags != mEnabled) {
+		if (!mEnabled) {
+			open_device();
+		}
+		err = ioctl(dev_fd, L3G4200D_IOCTL_SET_ENABLE, &flags);
+		err = err<0 ? -errno : 0;
+		LOGE_IF(err, "LIGHTSENSOR_IOCTL_ENABLE failed (%s)", strerror(-err));
+		if (!err) {
+			mEnabled = en ? 1 : 0;
+			if (en) {
+				setInitialState();
+			}
+		}
+		if (!mEnabled) {
+			close_device();
+		}
+	}
+	return err;
 }
+
 
 bool GyroSensor::hasPendingEvents() const {
     return mHasPendingEvent;
@@ -141,7 +166,7 @@ again:
 
         //LOGD("GyroSensor::readEvents() coutn = %d, event->value = %f", count, event->value);
         int type = event->type;
-        if (type == EV_ABS) {
+        if (type == EV_REL) {
             float value = event->value;
             if (event->code == EVENT_TYPE_GYRO_X) {
                 gyrox = value;
@@ -171,6 +196,10 @@ again:
             mPendingEvent.data[0] = (gyrox-offx) * CONVERT_GYRO_X;
             mPendingEvent.data[1] = (gyroy-offy) * CONVERT_GYRO_Y;
             mPendingEvent.data[2] = (gyroz-offz) * CONVERT_GYRO_Z;
+
+	    mPendingEvent.gyro.x =  mPendingEvent.data[0];
+            mPendingEvent.gyro.y =  mPendingEvent.data[1];
+            mPendingEvent.gyro.z =  mPendingEvent.data[2];
 
             time = timevalToNano(event->time);
 
