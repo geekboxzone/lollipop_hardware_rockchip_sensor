@@ -101,7 +101,7 @@ int init_nusensors(hw_module_t const* module, hw_device_t** device);
 
 
 /** 表征相同的 加速度物理量的时候, Android 上层使用的 数值 和 sensor 数据设备送出的 数值 的 比值. */
-#define ACCELERATION_RATIO_ANDROID_TO_HW        (9.80665 / 1000)
+#define ACCELERATION_RATIO_ANDROID_TO_HW        (9.80665f / 1000000)
 
 /*-------------------------------------------------------*/
 // 720 LSG = 1G

@@ -68,7 +68,7 @@
 #define ASENSOR_PATH "/dev/mma8452_daemon"
 
 /** 表征相同的 加速度物理量的时, "Android 上层使用的 数值" 和 "sensor 数据设备送出的 数值" 之间的比值. */
-#define ACCELERATION_RATIO_ANDROID_TO_HW        (9.80665 / 1000)
+#define ACCELERATION_RATIO_ANDROID_TO_HW        (9.80665f / 1000000)
 
 /** "sDisableAccTimer" 在本 app 模块 scope 中的标识 ID. */
 #define APP_TIME_ID__DISABLE_ACC    (1)

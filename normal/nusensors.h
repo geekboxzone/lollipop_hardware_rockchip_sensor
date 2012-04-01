@@ -87,7 +87,7 @@ int init_nusensors(hw_module_t const* module, hw_device_t** device);
 #define EVENT_TYPE_LIGHT            ABS_MISC
 
 /** 1mUwO`M,5D <SKY6HNo@mA?5DJ1:r, Android IO2cJ9SC5D J}V5 :M sensor J}>]Ih18KM3v5D J}V5 5D 1HV5. */
-#define ACCELERATION_RATIO_ANDROID_TO_HW        (9.80665 / 1000000)
+#define ACCELERATION_RATIO_ANDROID_TO_HW        (9.80665f / 1000000)
 
 /*-------------------------------------------------------*/
 // 720 LSG = 1G
