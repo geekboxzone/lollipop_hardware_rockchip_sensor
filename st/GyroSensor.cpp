@@ -170,37 +170,16 @@ again:
             float value = event->value;
             if (event->code == EVENT_TYPE_GYRO_X) {
                 gyrox = value;
+		mPendingEvent.data[0] = value * CONVERT_GYRO_X;
             } else if (event->code == EVENT_TYPE_GYRO_Y) {
                 gyroy = value;
+		mPendingEvent.data[1] = value * CONVERT_GYRO_Y;
             } else if (event->code == EVENT_TYPE_GYRO_Z) {
                 gyroz = value;
+		mPendingEvent.data[2] = value * CONVERT_GYRO_Z;
             }
 
-	    NineAxisTypeDef nineInput;
-            nineInput.ax =  1;
-            nineInput.ay =  1;
-            nineInput.az =  1000;
-            nineInput.mx =  300;
-            nineInput.my =  300;
-            nineInput.mz =  300;
-            nineInput.gx =  gyrox;
-            nineInput.gy =  gyroy;
-            nineInput.gz =  gyroz;
-
-            nineInput.time = getTimestamp()/1000000;
-
-            FusionTypeDef fusionData = MEMSAlgLib_Fusion_Update(nineInput);
-            float offx, offy, offz;
-            MEMSAlgLib_Fusion_Get_GyroOffset(&offx,&offy,&offz);
-            //LOGD("gyro offset: %f, %f, %f", offx, offy, offz);
-            mPendingEvent.data[0] = (gyrox-offx) * CONVERT_GYRO_X;
-            mPendingEvent.data[1] = (gyroy-offy) * CONVERT_GYRO_Y;
-            mPendingEvent.data[2] = (gyroz-offz) * CONVERT_GYRO_Z;
-
-	    mPendingEvent.gyro.x =  mPendingEvent.data[0];
-            mPendingEvent.gyro.y =  mPendingEvent.data[1];
-            mPendingEvent.gyro.z =  mPendingEvent.data[2];
-	    //LOGD("mPendingEvent: %f, %f, %f", mPendingEvent.gyro.x, mPendingEvent.gyro.y, mPendingEvent.gyro.z);
+	    //LOGD("mPendingEvent: %f, %f, %f", mPendingEvent.data[0], mPendingEvent.data[1], mPendingEvent.data[2]);
         }else if (type == EV_SYN) {
            
             time = timevalToNano(event->time);
