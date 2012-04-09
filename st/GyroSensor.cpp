@@ -175,8 +175,8 @@ again:
             } else if (event->code == EVENT_TYPE_GYRO_Z) {
                 gyroz = value;
             }
-        }else if (type == EV_SYN) {
-            NineAxisTypeDef nineInput;
+
+	    NineAxisTypeDef nineInput;
             nineInput.ax =  1;
             nineInput.ay =  1;
             nineInput.az =  1000;
@@ -200,9 +200,10 @@ again:
 	    mPendingEvent.gyro.x =  mPendingEvent.data[0];
             mPendingEvent.gyro.y =  mPendingEvent.data[1];
             mPendingEvent.gyro.z =  mPendingEvent.data[2];
-
+	    //LOGD("mPendingEvent: %f, %f, %f", mPendingEvent.gyro.x, mPendingEvent.gyro.y, mPendingEvent.gyro.z);
+        }else if (type == EV_SYN) {
+           
             time = timevalToNano(event->time);
-
             if(mEnabled) {
                 mPendingEvent.timestamp = time;
 

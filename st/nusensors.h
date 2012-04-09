@@ -95,8 +95,8 @@ int init_nusensors(hw_module_t const* module, hw_device_t** device);
 #define EVENT_TYPE_PROXIMITY        ABS_DISTANCE
 #define EVENT_TYPE_LIGHT            ABS_MISC
 
-#define EVENT_TYPE_GYRO_X           REL_RY
-#define EVENT_TYPE_GYRO_Y           REL_RX
+#define EVENT_TYPE_GYRO_X           REL_RX
+#define EVENT_TYPE_GYRO_Y           REL_RY
 #define EVENT_TYPE_GYRO_Z           REL_RZ
 
 
