@@ -21,7 +21,7 @@ ifeq ($(BOARD_SENSOR_MPU),true)
 # InvenSense fragment of the HAL
 include $(CLEAR_VARS)
 
-LOCAL_MODULE := sensors.rk29board
+LOCAL_MODULE := sensors.$(TARGET_BOARD_HARDWARE)
 
 LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
 
