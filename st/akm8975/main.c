@@ -28,6 +28,9 @@
 #include "DispMessage.h"
 #include "Measure.h"
 
+#define ENABLE_DEBUG_LOG
+#include "custom_log.h"
+
 
 extern int g_file;			/*!< FD to AK8975 device file. @see : "MSENSOR_NAME" */
 extern int s_stopRequest;	/*!< 0:Not stop,  1:Stop */

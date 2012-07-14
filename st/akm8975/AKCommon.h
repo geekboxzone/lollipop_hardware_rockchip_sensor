@@ -24,8 +24,6 @@
 #include <string.h>    //memset
 #include <unistd.h>
 #include <stdarg.h>    //va_list
-#include <utils/Log.h> //LOGV
-
 /*** Constant definition ******************************************************/
 #undef LOG_TAG
 #define LOG_TAG "AKMD2"

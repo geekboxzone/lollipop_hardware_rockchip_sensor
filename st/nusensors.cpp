@@ -26,7 +26,6 @@
 #include <linux/input.h>
 
 #include <cutils/atomic.h>
-#include <cutils/log.h>
 
 #include "nusensors.h"
 #include "LightSensor.h"

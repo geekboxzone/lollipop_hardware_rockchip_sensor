@@ -53,11 +53,14 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include <linux/mma8452.h>
+#include "../mma8452_kernel.h"
 
 #include "AKCommon.h"
 #include "AK8975Driver.h"
 #include "Acc_mma8452.h"
+
+#define ENABLE_DEBUG_LOG
+#include "custom_log.h"
 
 /* ---------------------------------------------------------------------------------------------------------
  * Local Macros 

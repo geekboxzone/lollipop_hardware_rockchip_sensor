@@ -57,6 +57,15 @@ extern "C" {
 /*-----------------------------------*/
 #ifdef ENABLE_DEBUG_LOG
 
+#if  PLATFORM_SDK_VERSION >= 16
+#define LOGV(fmt,args...) ALOGV(fmt,##args)
+#define LOGD(fmt,args...) ALOGD(fmt,##args)
+#define LOGI(fmt,args...) ALOGI(fmt,##args)
+#define LOGW(fmt,args...) ALOGW(fmt,##args)
+#define LOGE(fmt,args...) ALOGE(fmt,##args)
+#define LOGE_IF(cond,fmt,args...)	  ALOGE_IF(cond,fmt,##args)
+#endif
+
 #ifdef LOG_FILE_PATH
 #define D(fmt, args...) \
     { LOGD("[File] : %s; [Line] : %d; [Func] : %s() ; " fmt, __FILE__, __LINE__, __FUNCTION__, ## args); }

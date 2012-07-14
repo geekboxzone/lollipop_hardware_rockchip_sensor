@@ -22,11 +22,12 @@
 #include <dirent.h>
 #include <sys/select.h>
 
-#include <cutils/log.h>
-
 #include <linux/input.h>
 
 #include "SensorBase.h"
+
+#define ENABLE_DEBUG_LOG
+#include "akm8975/custom_log.h"
 
 /*****************************************************************************/
 
