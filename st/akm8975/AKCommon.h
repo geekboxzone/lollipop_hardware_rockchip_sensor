@@ -29,10 +29,10 @@
 #define LOG_TAG "AKMD2"
 //#define LOGD(format, ...)  printf(format, ##__VA_ARGS__);
 
-#define ENABLE_DEBUG_LOG
+//#define ENABLE_DEBUG_LOG
 #include "custom_log.h"
 
-#define ENABLE_VERBOSE_LOG
+//#define ENABLE_VERBOSE_LOG
 #ifdef ENABLE_VERBOSE_LOG
 #define V(x...) D(x)
 #else

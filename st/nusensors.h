@@ -30,7 +30,7 @@
 #include "mma8452_kernel.h"            // 声明驱动为 HAL 提供的功能接口. 应该用更加抽象的文件名.
 
 
-#define ENABLE_DEBUG_LOG
+//#define ENABLE_DEBUG_LOG
 #include "akm8975/custom_log.h"
 
 #ifndef M_PI

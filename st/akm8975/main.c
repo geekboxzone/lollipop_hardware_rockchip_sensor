@@ -28,7 +28,7 @@
 #include "DispMessage.h"
 #include "Measure.h"
 
-#define ENABLE_DEBUG_LOG
+//#define ENABLE_DEBUG_LOG
 #include "custom_log.h"
 
 

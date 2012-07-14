@@ -59,7 +59,7 @@
 #include "AK8975Driver.h"
 #include "Acc_mma8452.h"
 
-#define ENABLE_DEBUG_LOG
+//#define ENABLE_DEBUG_LOG
 #include "custom_log.h"
 
 /* ---------------------------------------------------------------------------------------------------------
