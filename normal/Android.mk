@@ -28,8 +28,7 @@ LOCAL_MODULE := sensors.$(TARGET_BOARD_HARDWARE)
 LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
 
 LOCAL_MODULE_TAGS := optional
-
-LOCAL_CFLAGS := -DLOG_TAG=\"SensorsHal\"
+LOCAL_CFLAGS := -DLOG_TAG=\"SensorsHal\" -DPLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION)
 LOCAL_SRC_FILES := 						\
 				sensors.c 				\
 				nusensors.cpp 			\

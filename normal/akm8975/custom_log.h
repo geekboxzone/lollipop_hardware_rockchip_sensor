@@ -55,6 +55,16 @@ extern "C" {
 #define LOG_FILE_PATH
 
 /*-----------------------------------*/
+
+#if  PLATFORM_SDK_VERSION >= 16
+#define LOGV(fmt,args...) ALOGV(fmt,##args)
+#define LOGD(fmt,args...) ALOGD(fmt,##args)
+#define LOGI(fmt,args...) ALOGI(fmt,##args)
+#define LOGW(fmt,args...) ALOGW(fmt,##args)
+#define LOGE(fmt,args...) ALOGE(fmt,##args)
+#define LOGE_IF(cond,fmt,args...)	  ALOGE_IF(cond,fmt,##args)
+#endif
+
 #ifdef ENABLE_DEBUG_LOG
 
 #ifdef LOG_FILE_PATH
@@ -71,6 +81,9 @@ extern "C" {
 
 
 /*-----------------------------------*/
+
+#ifdef ENABLE_DEBUG_LOG
+
 #ifdef LOG_FILE_PATH
 #define I(fmt, args...) \
     { LOGI("[File] : %s; [Line] : %d; [Func] : %s() ; ! Info : " fmt, __FILE__, __LINE__, __FUNCTION__, ## args); }
@@ -78,8 +91,12 @@ extern "C" {
 #define I(fmt, args...) \
     { LOGI("[Line] : %d; [Func] : %s() ; ! Info : " fmt, __LINE__, __FUNCTION__, ## args); }
 #endif
+#else
+#define I(...)  ((void)0)
+#endif
 
 /*-----------------------------------*/
+#ifdef ENABLE_DEBUG_LOG
 #ifdef LOG_FILE_PATH
 #define W(fmt, args...) \
     { LOGW("[File] : %s; [Line] : %d; [Func] : %s() ; !! Warning : " fmt, __FILE__, __LINE__, __FUNCTION__, ## args); }
@@ -87,14 +104,21 @@ extern "C" {
 #define W(fmt, args...) \
     { LOGW("[Line] : %d; [Func] : %s() ; !! Warning : " fmt, __LINE__, __FUNCTION__, ## args); }
 #endif
+#else
+#define W(...)  ((void)0)
+#endif
 
 /*-----------------------------------*/
+#ifdef ENABLE_DEBUG_LOG
 #ifdef LOG_FILE_PATH
 #define E(fmt, args...) \
     { LOGE("[File] : %s; [Line] : %d; [Func] : %s() ; !!! Error : " fmt, __FILE__, __LINE__, __FUNCTION__, ## args); }
 #else
 #define E(fmt, args...) \
     { LOGE("[Line] : %d; [Func] : %s() ; !!! Error : " fmt, __LINE__, __FUNCTION__, ## args); }
+#endif
+#else
+#define E(...)  ((void)0)
 #endif
 
 /*-----------------------------------*/

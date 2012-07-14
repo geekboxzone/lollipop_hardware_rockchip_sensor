@@ -19,8 +19,7 @@
  ******************************************************************************/
 #ifndef AKMD_INC_AK8975DRIVER_H
 #define AKMD_INC_AK8975DRIVER_H
-
-#include <linux/akm8975.h>	// Device driver
+#include "akm8975_kernel.h"
 #include <stdint.h>		// int8_t, int16_t etc.
 
 

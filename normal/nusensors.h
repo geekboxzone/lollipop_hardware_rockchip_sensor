@@ -27,7 +27,7 @@
 #include <hardware/hardware.h>
 #include <hardware/sensors.h>
 
-#include <linux/mma8452.h>              // IyCwG}6/N* HAL La9)5D9&D\=S?Z. S&8CSC8|<S3iOs5DND<~C{.
+#include "mma8452_kernel.h"             // IyCwG}6/N* HAL La9)5D9&D\=S?Z. S&8CSC8|<S3iOs5DND<~C{.
 
 
 // #define ENABLE_DEBUG_LOG
