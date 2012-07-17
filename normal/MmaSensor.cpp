@@ -220,7 +220,23 @@ int MmaSensor::readEvents(sensors_event_t* data, int count)
 void MmaSensor::processEvent(int code, int value)
 {
 	D("Entered : code = 0x%x, value = 0x%x.", code, value);
+#if PLATFORM_SDK_VERSION >= 16
     switch (code) {
+        case EVENT_TYPE_ACCEL_X:
+            mPendingMask |= 1<<Accelerometer;
+            mPendingEvents[Accelerometer].acceleration.y = value * ACCELERATION_RATIO_ANDROID_TO_HW;
+            break;
+        case EVENT_TYPE_ACCEL_Y:
+            mPendingMask |= 1<<Accelerometer;
+            mPendingEvents[Accelerometer].acceleration.x = -(value * ACCELERATION_RATIO_ANDROID_TO_HW);
+            break;
+        case EVENT_TYPE_ACCEL_Z:
+            mPendingMask |= 1<<Accelerometer;
+            mPendingEvents[Accelerometer].acceleration.z = value * ACCELERATION_RATIO_ANDROID_TO_HW;
+            break;
+    }
+#else
+switch (code) {
         case EVENT_TYPE_ACCEL_X:
             mPendingMask |= 1<<Accelerometer;
             mPendingEvents[Accelerometer].acceleration.x = value * ACCELERATION_RATIO_ANDROID_TO_HW;
@@ -234,5 +250,6 @@ void MmaSensor::processEvent(int code, int value)
             mPendingEvents[Accelerometer].acceleration.z = value * ACCELERATION_RATIO_ANDROID_TO_HW;
             break;
     }
+#endif
 }
 
