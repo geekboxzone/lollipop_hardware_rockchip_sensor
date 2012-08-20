@@ -35,7 +35,7 @@ static const struct sensor_t sSensorList[] = {
             	"Freescale Semiconductor",
                 1, SENSORS_HANDLE_BASE+ID_A,
                 SENSOR_TYPE_ACCELEROMETER, 4.0f*9.81f, (4.0f*9.81f)/256.0f, 0.2f, 0, { } },
-        /*{ "AK8975 3-axis Magnetic field sensor",
+        { "AK8975 3-axis Magnetic field sensor",
                 "Asahi Kasei",
                 1, SENSORS_HANDLE_BASE+ID_M,
                 SENSOR_TYPE_MAGNETIC_FIELD, 2000.0f, 1.0f/16.0f, 6.8f, 0, { } },
@@ -59,7 +59,7 @@ static const struct sensor_t sSensorList[] = {
         { "AL3006 light sensor",
                 "Dyna Image Corporation",
                 1, SENSORS_HANDLE_BASE+ID_L,
-                SENSOR_TYPE_LIGHT, 10240.0f, 1.0f, 0.5f, 0, { } },*/
+                SENSOR_TYPE_LIGHT, 10240.0f, 1.0f, 0.5f, 0, { } },
 
 	
        /* { "CM3602 Proximity sensor",
