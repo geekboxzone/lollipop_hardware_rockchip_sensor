@@ -46,6 +46,34 @@ __BEGIN_DECLS
 
 /*****************************************************************************/
 
+#ifndef LOGD
+#define LOGD(...) ALOGD( __VA_ARGS__)
+#endif
+
+#ifndef LOGE
+#define LOGE(...) ALOGE( __VA_ARGS__)
+#endif
+
+#ifndef LOGW
+#define LOGW(...) ALOGW( __VA_ARGS__)
+#endif
+
+#ifndef LOGI
+#define LOGI(...) ALOGI( __VA_ARGS__)
+#endif
+
+#ifndef LOGV
+#define LOGV(...) ALOGV( __VA_ARGS__)
+#endif
+
+#ifndef LOGE_IF
+#define LOGE_IF(...) ALOGE_IF( __VA_ARGS__)
+#endif
+
+#ifndef LOGV_IF
+#define LOGV_IF(...) ALOGV_IF( __VA_ARGS__)
+#endif
+
 /*
  * The SENSORS Module
  */
