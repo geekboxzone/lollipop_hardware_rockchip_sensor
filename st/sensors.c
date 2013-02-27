@@ -31,36 +31,45 @@
  */
 
 static const struct sensor_t sSensorList[] = {
-        { "MMA8452Q 3-axis Accelerometer",    
+        { "Gravity sensor",    
             	"Freescale Semiconductor",
                 1, SENSORS_HANDLE_BASE+ID_A,
                 SENSOR_TYPE_ACCELEROMETER, 4.0f*9.81f, (4.0f*9.81f)/256.0f, 0.2f, 0, { } },
-        { "AK8975 3-axis Magnetic field sensor",
+        { "Compass Magnetic field sensor",
                 "Asahi Kasei",
                 1, SENSORS_HANDLE_BASE+ID_M,
                 SENSOR_TYPE_MAGNETIC_FIELD, 2000.0f, 1.0f/16.0f, 6.8f, 0, { } },
-        { "AK8975 Orientation sensor",
+        { "Compass Orientation sensor",
                 "Asahi Kasei",
                 1, SENSORS_HANDLE_BASE+ID_O,
                 SENSOR_TYPE_ORIENTATION, 360.0f, 1.0f, 7.0f, 0, { } }, 
 
-	{ "ST 3-axis Gyroscope sensor",
+	{ "Gyroscope sensor",
           "STMicroelectronics",
           1, SENSORS_HANDLE_BASE+ID_GY,
           SENSOR_TYPE_GYROSCOPE, RANGE_GYRO, CONVERT_GYRO, 6.1f, 1190, { } },
 			
-	{ "AL3006Proximity sensor",
+	{ "Proximity sensor",
 		"Dyna Image Corporation",
 		1, SENSORS_HANDLE_BASE+ID_P,
 		SENSOR_TYPE_PROXIMITY,
 		PROXIMITY_THRESHOLD_CM, PROXIMITY_THRESHOLD_CM,
 		0.5f, 0, { } },
 		
-        { "AL3006 light sensor",
+        { "Light sensor",
                 "Dyna Image Corporation",
                 1, SENSORS_HANDLE_BASE+ID_L,
                 SENSOR_TYPE_LIGHT, 10240.0f, 1.0f, 0.5f, 0, { } },
 
+	{ "Pressure sensor",
+                "ms5607",
+                1, SENSORS_HANDLE_BASE+ID_PR,
+                SENSOR_TYPE_PRESSURE, 110000.0f, 1.0f, 1.0f, 30000, { } },
+
+	{ "Temperature sensor",
+                "ms5607",
+                1, SENSORS_HANDLE_BASE+ID_TMP,
+                SENSOR_TYPE_AMBIENT_TEMPERATURE, 110000.0f, 1.0f, 1.0f, 30000, { } },
 	
        /* { "CM3602 Proximity sensor",
                 "Capella Microsystems",

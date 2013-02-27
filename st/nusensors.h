@@ -33,6 +33,10 @@
 //#define ENABLE_DEBUG_LOG
 #include "akm8975/custom_log.h"
 
+
+#define SENSOR_VERSION_AND_TIME  "sensor v1.1: add pressure and temperature support 2013-2-27"
+
+
 #ifndef M_PI
 #define M_PI		3.14159265358979323846	// matches value in gcc v2 math.h
 #endif
@@ -54,6 +58,10 @@ int init_nusensors(hw_module_t const* module, hw_device_t** device);
 #define ID_P  	(3)
 #define ID_L	(4)
 #define ID_GY	(5)
+#define ID_PR	(6)
+#define ID_TMP	(7)
+
+
 
 
 /*****************************************************************************/
@@ -74,6 +82,10 @@ int init_nusensors(hw_module_t const* module, hw_device_t** device);
 #define PS_DEVICE_NAME      "/dev/psensor"
 #define LS_DEVICE_NAME      "/dev/lightsensor"
 #define GY_DEVICE_NAME      "/dev/gyrosensor"
+#define PR_DEVICE_NAME      "/dev/pressure"
+#define TMP_DEVICE_NAME      "/dev/temperature"
+
+
 
 
 #define EVENT_TYPE_ACCEL_X          ABS_X
@@ -98,6 +110,9 @@ int init_nusensors(hw_module_t const* module, hw_device_t** device);
 #define EVENT_TYPE_GYRO_X           REL_RX
 #define EVENT_TYPE_GYRO_Y           REL_RY
 #define EVENT_TYPE_GYRO_Z           REL_RZ
+
+#define EVENT_TYPE_PRESSURE         ABS_PRESSURE
+
 
 
 /** 表征相同的 加速度物理量的时候, Android 上层使用的 数值 和 sensor 数据设备送出的 数值 的 比值. */
@@ -133,6 +148,7 @@ int init_nusensors(hw_module_t const* module, hw_device_t** device);
 #define CONVERT_GYRO_Y              (CONVERT_GYRO)
 #define CONVERT_GYRO_Z              (CONVERT_GYRO)
 
+#define CONVERT_B                   (1.0f/100.0f)
 
 #define SENSOR_STATE_MASK           (0x7FFF)
 

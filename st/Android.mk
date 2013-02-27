@@ -39,6 +39,8 @@ LOCAL_SRC_FILES := 						\
 				MmaSensor.cpp	\
 				LightSensor.cpp	\
 				ProximitySensor.cpp		\
+				PressureSensor.cpp		\
+				TemperatureSensor.cpp		\
 				
 LOCAL_SHARED_LIBRARIES := liblog \
 	libcutils \

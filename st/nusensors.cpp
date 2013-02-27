@@ -33,6 +33,9 @@
 #include "MmaSensor.h"
 #include "AkmSensor.h"
 #include "GyroSensor.h"
+#include "PressureSensor.h"
+#include "TemperatureSensor.h"
+
 
 /*****************************************************************************/
 
@@ -51,7 +54,9 @@ private:
         proximity       = 1,
         mma             = 2,
         akm             = 3,
-        gyro            = 4,
+        gyro            = 4, 
+        pressure        = 5,
+        temperature		= 6,
         numSensorDrivers,
         numFds,
     };
@@ -75,6 +80,10 @@ private:
                 return light;	
 			case ID_GY:
 				return gyro;
+			case ID_PR:
+				return pressure;
+			case ID_TMP:
+				return temperature;
         }
         return -EINVAL;
     }
@@ -111,6 +120,16 @@ sensors_poll_context_t::sensors_poll_context_t()
     mPollFds[gyro].fd = mSensors[gyro]->getFd();
     mPollFds[gyro].events = POLLIN;
     mPollFds[gyro].revents = 0;
+
+	mSensors[pressure] = new PressureSensor();
+    mPollFds[pressure].fd = mSensors[pressure]->getFd();
+    mPollFds[pressure].events = POLLIN;
+    mPollFds[pressure].revents = 0;
+
+	mSensors[temperature] = new TemperatureSensor();
+    mPollFds[temperature].fd = mSensors[temperature]->getFd();
+    mPollFds[temperature].events = POLLIN;
+    mPollFds[temperature].revents = 0;
 
     int wakeFds[2];
     int result = pipe(wakeFds);
@@ -234,7 +253,7 @@ static int poll__poll(struct sensors_poll_device_t *dev,
 
 int init_nusensors(hw_module_t const* module, hw_device_t** device)
 {
-	D("Entered.");
+	LOGD("%s\n",SENSOR_VERSION_AND_TIME);
     int status = -EINVAL;
 
     sensors_poll_context_t *dev = new sensors_poll_context_t();
