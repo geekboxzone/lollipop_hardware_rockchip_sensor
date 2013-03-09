@@ -53,43 +53,36 @@ Defines a read-only address of the fuse ROM of the AK8975.*/
 #define AK8975_FUSE_ASAZ	0x12
 /*! @}*/
 
-#define AKMIO                   0xA1
 
-struct akm8975_platform_data {
+struct akm_platform_data {
 	short m_layout[4][3][3];
 	char project_name[64];
+	char layout;
+	char outbit;
 	int gpio_DRDY;
+	int gpio_RST;
 };
 
+#define COMPASS_IOCTL_MAGIC                   'c'
+#define SENSOR_DATA_SIZE		8	/* Rx buffer size, i.e from ST1 to ST2 */
 
 /* IOCTLs for AKM library */
-#define ECS_IOCTL_WRITE                 _IOW(AKMIO, 0x01, char*)
-#define ECS_IOCTL_READ                  _IOWR(AKMIO, 0x02, char*)
-#define ECS_IOCTL_RESET      	        _IO(AKMIO, 0x03) /* NOT used in AK8975 */
-#define ECS_IOCTL_SET_MODE              _IOW(AKMIO, 0x04, short)
-#define ECS_IOCTL_GETDATA               _IOR(AKMIO, 0x05, char[SENSOR_DATA_SIZE])
-#define ECS_IOCTL_SET_YPR               _IOW(AKMIO, 0x06, short[12])
-#define ECS_IOCTL_GET_OPEN_STATUS       _IOR(AKMIO, 0x07, int)
-#define ECS_IOCTL_GET_CLOSE_STATUS      _IOR(AKMIO, 0x08, int)
-#define ECS_IOCTL_GET_DELAY             _IOR(AKMIO, 0x30, short)
-#define ECS_IOCTL_GET_PROJECT_NAME      _IOR(AKMIO, 0x0D, char[64])
-#define ECS_IOCTL_GET_MATRIX            _IOR(AKMIO, 0x0E, short [4][3][3])
-#define ECS_IOCTL_GET_PLATFORM_DATA     _IOR(AKMIO, 0x0E, struct akm8975_platform_data)
+#define ECS_IOCTL_WRITE                 _IOW(COMPASS_IOCTL_MAGIC, 0x01, char*)
+#define ECS_IOCTL_READ                  _IOWR(COMPASS_IOCTL_MAGIC, 0x02, char*)
+#define ECS_IOCTL_RESET      	        _IO(COMPASS_IOCTL_MAGIC, 0x03) /* NOT used in AK8975 */
+#define ECS_IOCTL_SET_MODE              _IOW(COMPASS_IOCTL_MAGIC, 0x04, short)
+#define ECS_IOCTL_GETDATA               _IOR(COMPASS_IOCTL_MAGIC, 0x05, char[SENSOR_DATA_SIZE])
+#define ECS_IOCTL_SET_YPR               _IOW(COMPASS_IOCTL_MAGIC, 0x06, short[12])
+#define ECS_IOCTL_GET_OPEN_STATUS       _IOR(COMPASS_IOCTL_MAGIC, 0x07, int)
+#define ECS_IOCTL_GET_CLOSE_STATUS      _IOR(COMPASS_IOCTL_MAGIC, 0x08, int)
+#define ECS_IOCTL_GET_LAYOUT        	_IOR(COMPASS_IOCTL_MAGIC, 0x09, char)
+#define ECS_IOCTL_GET_ACCEL         	_IOR(COMPASS_IOCTL_MAGIC, 0x0A, short[3])
+#define ECS_IOCTL_GET_OUTBIT        	_IOR(COMPASS_IOCTL_MAGIC, 0x0B, char)
+#define ECS_IOCTL_GET_DELAY             _IOR(COMPASS_IOCTL_MAGIC, 0x30, short)
+#define ECS_IOCTL_GET_PROJECT_NAME      _IOR(COMPASS_IOCTL_MAGIC, 0x0D, char[64])
+#define ECS_IOCTL_GET_MATRIX            _IOR(COMPASS_IOCTL_MAGIC, 0x0E, short [4][3][3])
+#define ECS_IOCTL_GET_PLATFORM_DATA     _IOR(COMPASS_IOCTL_MAGIC, 0x0E, struct akm_platform_data)
 
-
-/* IOCTLs for APPs */
-#define ECS_IOCTL_APP_SET_MODE		_IOW(AKMIO, 0x10, short)
-#define ECS_IOCTL_APP_SET_MFLAG		_IOW(AKMIO, 0x11, short)
-#define ECS_IOCTL_APP_GET_MFLAG		_IOW(AKMIO, 0x12, short)
-#define ECS_IOCTL_APP_SET_AFLAG		_IOW(AKMIO, 0x13, short)
-#define ECS_IOCTL_APP_GET_AFLAG		_IOR(AKMIO, 0x14, short)
-#define ECS_IOCTL_APP_SET_TFLAG		_IOR(AKMIO, 0x15, short)/* NOT use */
-#define ECS_IOCTL_APP_GET_TFLAG		_IOR(AKMIO, 0x16, short)/* NOT use */
-#define ECS_IOCTL_APP_RESET_PEDOMETER   _IO(AKMIO, 0x17)	/* NOT use */
-#define ECS_IOCTL_APP_SET_DELAY		_IOW(AKMIO, 0x18, short)
-#define ECS_IOCTL_APP_GET_DELAY		ECS_IOCTL_GET_DELAY
-#define ECS_IOCTL_APP_SET_MVFLAG	_IOW(AKMIO, 0x19, short)
-#define ECS_IOCTL_APP_GET_MVFLAG	_IOR(AKMIO, 0x1A, short)
 
 #endif
 

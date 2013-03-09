@@ -51,8 +51,11 @@ LOCAL_LDFLAGS = $(LOCAL_PATH)/LibFusion_ARM_cpp.a
 LOCAL_PRELINK_MODULE := false
 
 include $(BUILD_SHARED_LIBRARY)
-
+ifeq ($(BOARD_SENSOR_COMPASS_AK8963),true)
+include $(LOCAL_PATH)/akm8963/Android.mk
+else
 include $(LOCAL_PATH)/akm8975/Android.mk
+endif
 
 endif # !TARGET_SIMULATOR
 endif 

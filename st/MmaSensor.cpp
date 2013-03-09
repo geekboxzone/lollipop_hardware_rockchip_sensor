@@ -86,17 +86,17 @@ int MmaSensor::enable(int32_t handle, int en)
         }
        
 		if ( 1 == newState ) {
-            I("to call 'MMA_IOCTL_START'.");
-			if ( 0 > (err = ioctl(dev_fd, MMA_IOCTL_START) ) ) {
-				E("fail to perform MMA_IOCTL_START, err = %d, error is '%s'", err, strerror(errno));
+            I("to call 'GSENSOR_IOCTL_START'.");
+			if ( 0 > (err = ioctl(dev_fd, GSENSOR_IOCTL_START) ) ) {
+				E("fail to perform GSENSOR_IOCTL_START, err = %d, error is '%s'", err, strerror(errno));
 				goto EXIT;
 			}
             mEnabled |= (1 << what);
 		}
 		else {
-            I("to call 'MMA_IOCTL_CLOSE'.");
-			if ( 0 > (err = ioctl(dev_fd, MMA_IOCTL_CLOSE) ) ) {
-				E("fail to perform MMA_IOCTL_CLOSE, err = %d, error is '%s'", err, strerror(errno));
+            I("to call 'GSENSOR_IOCTL_CLOSE'.");
+			if ( 0 > (err = ioctl(dev_fd, GSENSOR_IOCTL_CLOSE) ) ) {
+				E("fail to perform GSENSOR_IOCTL_CLOSE, err = %d, error is '%s'", err, strerror(errno));
 				goto EXIT;
 			}
             mEnabled &= ~(1 << what);
@@ -114,7 +114,7 @@ EXIT:
 int MmaSensor::setDelay(int32_t handle, int64_t ns)
 {
 	D("Entered : handle = 0x%x, ns = %lld.", handle, ns);
-#ifdef MMA_IOCTL_APP_SET_RATE
+#ifdef GSENSOR_IOCTL_APP_SET_RATE
     int what = -1;
     switch (handle) {
         case ID_A: what = Accelerometer; break;
@@ -163,8 +163,8 @@ int MmaSensor::update_delay()
 		}
 		D("acceptable_sample_rate = %d", acceptable_sample_rate);
 
-		if ( 0 > (result = ioctl(dev_fd, MMA_IOCTL_APP_SET_RATE, &acceptable_sample_rate) ) ) {
-				E("fail to perform MMA_IOCTL_APP_SET_RATE, result = %d, error is '%s'", result, strerror(errno) );
+		if ( 0 > (result = ioctl(dev_fd, GSENSOR_IOCTL_APP_SET_RATE, &acceptable_sample_rate) ) ) {
+				E("fail to perform GSENSOR_IOCTL_APP_SET_RATE, result = %d, error is '%s'", result, strerror(errno) );
 		}
     }
     return result;

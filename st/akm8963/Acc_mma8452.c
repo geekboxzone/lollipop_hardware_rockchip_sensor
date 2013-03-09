@@ -56,7 +56,7 @@
 #include "../mma8452_kernel.h"
 
 #include "AKCommon.h"
-#include "AK8975Driver.h"
+#include "AK8963Driver.h"
 #include "Acc_mma8452.h"
 
 //#define ENABLE_DEBUG_LOG

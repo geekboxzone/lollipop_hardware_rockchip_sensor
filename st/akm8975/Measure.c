@@ -38,7 +38,7 @@ extern int g_file;			/*!< FD to AK8975 device file. @see : "MSENSOR_NAME" */
  */
 void InitAK8975PRMS(AK8975PRMS* prms)
 {
-	struct akm8975_platform_data pdata;
+	struct akm_platform_data pdata;
 	int i,j,k;
 	// Set 0 to the AK8975PRMS structure.
 	memset(prms, 0, sizeof(AK8975PRMS));
@@ -264,8 +264,8 @@ int16 ReadAK8975FUSEROM(AK8975PRMS* prms)
 	}
 	prms->m_key[0] = CSPEC_CI_AK_DEVICE;
 	prms->m_key[1] = (int16)i2cData[0];
-	strncpy(prms->m_licenser, CSPEC_CI_LICENSER, AKSC_CI_MAX_CHARSIZE);
-	strncpy(prms->m_licensee, CSPEC_CI_LICENSEE, AKSC_CI_MAX_CHARSIZE);
+	strncpy((char *)prms->m_licenser, CSPEC_CI_LICENSER, AKSC_CI_MAX_CHARSIZE);
+	strncpy((char *)prms->m_licensee, CSPEC_CI_LICENSEE, AKSC_CI_MAX_CHARSIZE);
 	
 	return AKRET_PROC_SUCCEED;
 }

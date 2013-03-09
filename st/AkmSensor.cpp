@@ -286,6 +286,10 @@ void AkmSensor::processEvent(int code, int value)
             mPendingMask |= 1<<MagneticField;
             mPendingEvents[MagneticField].magnetic.z = value * CONVERT_M_Z;
             break;
+		case EVENT_TYPE_MAGV_STATUS:
+            mPendingMask |= 1<<MagneticField;
+            mPendingEvents[MagneticField].magnetic.status = value;
+            break;
 
         case EVENT_TYPE_YAW:
             mPendingMask |= 1<<Orientation;

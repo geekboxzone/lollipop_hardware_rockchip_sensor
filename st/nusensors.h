@@ -33,8 +33,12 @@
 //#define ENABLE_DEBUG_LOG
 #include "akm8975/custom_log.h"
 
+#if 0
+sensor-dev.c v1.1 add pressure and temperature support 2013-2-27
+sensor-dev.c v1.2 add akm8963 support 2013-3-10
+#endif
 
-#define SENSOR_VERSION_AND_TIME  "sensor v1.1: add pressure and temperature support 2013-2-27"
+#define SENSOR_VERSION_AND_TIME  "sensor-dev.c v1.2 add akm8963 support 2013-3-10"
 
 
 #ifndef M_PI
@@ -62,8 +66,6 @@ int init_nusensors(hw_module_t const* module, hw_device_t** device);
 #define ID_TMP	(7)
 
 
-
-
 /*****************************************************************************/
 
 /*
@@ -78,19 +80,19 @@ int init_nusensors(hw_module_t const* module, hw_device_t** device);
 
 #define MMA_DEVICE_NAME     GSENSOR_DEV_PATH
 /** akm sensor(M 和 O sensor) 的控制设备文件路径. */
-#define AKM_DEVICE_NAME     "/dev/akm8975_aot"
+#define AKM_DEVICE_NAME     "/dev/compass"
 #define PS_DEVICE_NAME      "/dev/psensor"
 #define LS_DEVICE_NAME      "/dev/lightsensor"
 #define GY_DEVICE_NAME      "/dev/gyrosensor"
 #define PR_DEVICE_NAME      "/dev/pressure"
-#define TMP_DEVICE_NAME      "/dev/temperature"
+#define TMP_DEVICE_NAME     "/dev/temperature"
 
 
 
 
 #define EVENT_TYPE_ACCEL_X          ABS_X
-#define EVENT_TYPE_ACCEL_Y          ABS_Z
-#define EVENT_TYPE_ACCEL_Z          ABS_Y
+#define EVENT_TYPE_ACCEL_Y          ABS_Y
+#define EVENT_TYPE_ACCEL_Z          ABS_Z
 #define EVENT_TYPE_ACCEL_STATUS     ABS_WHEEL
 
 #define EVENT_TYPE_YAW              ABS_RX
@@ -98,9 +100,11 @@ int init_nusensors(hw_module_t const* module, hw_device_t** device);
 #define EVENT_TYPE_ROLL             ABS_RZ
 #define EVENT_TYPE_ORIENT_STATUS    ABS_RUDDER
 
-#define EVENT_TYPE_MAGV_X           ABS_HAT0Y
-#define EVENT_TYPE_MAGV_Y           ABS_HAT0X
+#define EVENT_TYPE_MAGV_X           ABS_HAT0X
+#define EVENT_TYPE_MAGV_Y           ABS_HAT0Y
 #define EVENT_TYPE_MAGV_Z           ABS_BRAKE
+#define EVENT_TYPE_MAGV_STATUS      ABS_HAT1X
+
 
 #define EVENT_TYPE_TEMPERATURE      ABS_THROTTLE
 #define EVENT_TYPE_STEP_COUNT       ABS_GAS

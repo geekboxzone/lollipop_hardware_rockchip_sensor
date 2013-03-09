@@ -327,8 +327,8 @@ void Android2AK(const float fData[], int16_t data[3])
      * 若将送入 AKSC_DirectionS3() 的 acc 数据使用 SmartCompass 坐标系, ...
      * .! : 这里 acc 的坐标定义有蹊跷, 下面的实现是正确的.
      */
-	data[0] = fData[1] / 9.8f * -720;
-	data[1] = fData[0] / 9.8f *  720;
-	data[2] = fData[2] / 9.8f * -720;
+	data[0] = fData[0] / 9.8f * 720;
+	data[1] = fData[1] / 9.8f * 720;
+	data[2] = fData[2] / 9.8f * 720;
 }
 
