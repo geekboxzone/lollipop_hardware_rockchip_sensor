@@ -33,12 +33,13 @@
 //#define ENABLE_DEBUG_LOG
 #include "akm8975/custom_log.h"
 
-#if 0
-sensor-dev.c v1.1 add pressure and temperature support 2013-2-27
-sensor-dev.c v1.2 add akm8963 support 2013-3-10
-#endif
+/*
+sensor hal v1.1 add pressure and temperature support 2013-2-27
+sensor hal  v1.2 add akm8963 support 2013-3-10
+sensor hal  v1.3 modify akm device name from akmd8975 to akmd 2013-3-14
+*/
 
-#define SENSOR_VERSION_AND_TIME  "sensor-dev.c v1.2 add akm8963 support 2013-3-10"
+#define SENSOR_VERSION_AND_TIME  "sensor hal  v1.3 modify akm device name from akmd8975 to akmd 2013-3-14"
 
 
 #ifndef M_PI
@@ -137,13 +138,13 @@ int init_nusensors(hw_module_t const* module, hw_device_t** device);
 #define CONVERT_M                   (1.0f*0.06f)
 #define CONVERT_M_X                 (CONVERT_M)
 #define CONVERT_M_Y                 (CONVERT_M)
-#define CONVERT_M_Z                 (-CONVERT_M)
+#define CONVERT_M_Z                 (CONVERT_M)
 
 // conversion of orientation data to degree units
 #define CONVERT_O                   (1.0f/64.0f)
 #define CONVERT_O_A                 (CONVERT_O)
 #define CONVERT_O_P                 (CONVERT_O)
-#define CONVERT_O_R                 (-CONVERT_O)
+#define CONVERT_O_R                 (CONVERT_O)
 
 // conversion of gyro data to SI units (radian/sec)
 #define RANGE_GYRO                  (2000.0f*(float)M_PI/180.0f)
