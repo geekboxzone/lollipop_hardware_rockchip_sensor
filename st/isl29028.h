@@ -20,11 +20,10 @@
 #include <linux/types.h>
 #include <linux/ioctl.h>
 
-#define PSENSOR_IOCTL_MAGIC 'c'
-#define PSENSOR_IOCTL_GET_ENABLED \
-		_IOR(PSENSOR_IOCTL_MAGIC, 1, int *)
-#define PSENSOR_IOCTL_ENABLE \
-		_IOW(PSENSOR_IOCTL_MAGIC, 2, int *)
+#define PSENSOR_IOCTL_MAGIC 'p'
+#define PSENSOR_IOCTL_GET_ENABLED               _IOR(PSENSOR_IOCTL_MAGIC, 1, int *)
+#define PSENSOR_IOCTL_ENABLE                    _IOW(PSENSOR_IOCTL_MAGIC, 2, int *)
+#define PSENSOR_IOCTL_DISABLE                   _IOW(PSENSOR_IOCTL_MAGIC, 3, int *)
 
 #define LIGHTSENSOR_IOCTL_MAGIC 'l'
 #define LIGHTSENSOR_IOCTL_GET_ENABLED _IOR(LIGHTSENSOR_IOCTL_MAGIC, 1, int *)

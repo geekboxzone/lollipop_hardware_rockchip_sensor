@@ -37,9 +37,10 @@
 sensor hal v1.1 add pressure and temperature support 2013-2-27
 sensor hal  v1.2 add akm8963 support 2013-3-10
 sensor hal  v1.3 modify akm device name from akmd8975 to akmd 2013-3-14
+sensor hal  v1.4 add akm09911 support 2013-3-21
 */
 
-#define SENSOR_VERSION_AND_TIME  "sensor hal  v1.3 modify akm device name from akmd8975 to akmd 2013-3-14"
+#define SENSOR_VERSION_AND_TIME  "sensor hal  v1.4 add akm09911 support 2013-3-21"
 
 
 #ifndef M_PI
