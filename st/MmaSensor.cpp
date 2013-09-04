@@ -21,12 +21,297 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <sys/select.h>
-
-// #include <linux/akm8973.h>
-
+#include <stdio.h>
+#include <math.h>
 #include <cutils/log.h>
 
 #include "MmaSensor.h"
+#include "mma8452_kernel.h"
+
+#if defined(ANGLE_SUPPORT)
+static int sAngleFd = -1;
+static int sAccFd = -1;
+static int sCtrlFd = -1;
+static int sCountAngle[2] = {0,0};
+static int sKeyCtrl = -1;
+#define DISABLE_KEY	0
+#define ENABLE_KEY	1
+#define GSENSOR_IOCTL_KEYBOARD		        _IOW(GSENSOR_IOCTL_MAGIC, 0x11, int[2] )
+#define ANGLE_VALID_COUNT	5
+static int angle_open_device(void)
+{	
+    if (sAngleFd < 0) 
+    {
+		sAngleFd = open("/dev/angle", O_RDWR);
+		if(sAngleFd < 0)
+	    {
+			ALOGE("%s:line=%d,error=%s\n",__FUNCTION__, __LINE__, strerror(errno));
+			return -1;
+		}
+    }
+
+	if (sAccFd < 0) 
+    {
+		sAccFd = open(MMA_DEVICE_NAME, O_RDWR);
+		if(sAccFd < 0)
+	    {
+			ALOGE("%s:line=%d,error=%s\n",__FUNCTION__, __LINE__, strerror(errno));
+			return -1;
+		}
+    }
+#if 0
+	if (sCtrlFd < 0) 
+    {
+		sCtrlFd = open("/dev/ec", O_RDWR);
+		if(sCtrlFd < 0)
+	    {
+			ALOGE("%s:line=%d,error=%s\n",__FUNCTION__, __LINE__, strerror(errno));
+			return -1;
+		}
+    }
+#endif
+	ALOGD("%s\n",__FUNCTION__);
+	return 0;
+}
+
+static int angle_close_device(void)
+{
+    if(sAngleFd >= 0)
+	{
+        close(sAngleFd);
+        sAngleFd = -1;
+    }
+
+	if(sAccFd >= 0)
+	{
+        close(sAccFd);
+        sAccFd = -1;
+    }
+#if 0
+	if(sCtrlFd >= 0)
+	{
+        close(sCtrlFd);
+        sCtrlFd = -1;
+    }
+#endif	
+	ALOGD("%s\n",__FUNCTION__);
+	return 0;
+}
+
+static int angle_enable(int32_t handle, int en)
+{	
+	int sample_rate = MMA8452_RATE_12P5;
+	
+    if (sAngleFd < 0) 
+    {
+		ALOGE("%s:line=%d,error: sAngleFd=%d\n",__FUNCTION__, __LINE__, sAngleFd);
+		return -1;
+    }
+	
+	if(en)
+	{
+		if ( 0 > ioctl(sAngleFd, GSENSOR_IOCTL_START) ) 
+		{
+			ALOGE("%s:line=%d,error=%s\n",__FUNCTION__, __LINE__, strerror(errno));
+			return -1;
+		}
+
+		if ( 0 > ioctl(sAngleFd, GSENSOR_IOCTL_APP_SET_RATE, &sample_rate) ) 
+		{
+			ALOGE("%s:line=%d,error=%s\n",__FUNCTION__, __LINE__, strerror(errno));
+			return -1;
+		}
+	}
+	else
+	{
+		if ( 0 > ioctl(sAngleFd, GSENSOR_IOCTL_CLOSE) ) 
+		{
+			ALOGE("%s:line=%d,error=%s\n",__FUNCTION__, __LINE__, strerror(errno));
+			return -1;
+		}
+
+	}
+
+	ALOGD("%s: handle=%d, en=%d\n",__FUNCTION__, handle, en);
+
+	return 0;
+}
+
+
+static int angle_get_acc_data(float angleData[3], float accData[3])
+{
+    struct sensor_axis angle = {0, 0, 0};
+    struct sensor_axis acc = {0, 0, 0};
+	
+	if (sAngleFd < 0) 
+    {
+		ALOGE("%s:line=%d,error: sAngleFd=%d\n",__FUNCTION__, __LINE__, sAngleFd);
+		return -1;
+    }
+
+	if (sAccFd < 0) 
+    {
+		ALOGE("%s:line=%d,error: sAngleFd=%d\n",__FUNCTION__, __LINE__, sAngleFd);
+		return -1;
+    }
+	
+	if ( 0 > ioctl(sAngleFd, GSENSOR_IOCTL_GETDATA, &angle) )
+	{
+		ALOGE("%s:line=%d,error=%s\n",__FUNCTION__, __LINE__, strerror(errno));
+		return -1;
+	}
+
+	if ( 0 > ioctl(sAccFd, GSENSOR_IOCTL_GETDATA, &acc) )
+	{
+		ALOGE("%s:line=%d,error=%s\n",__FUNCTION__, __LINE__, strerror(errno));
+		return -1;
+	}
+
+    angleData[0] = ( (angle.y) * ACCELERATION_RATIO_ANDROID_TO_HW);
+    angleData[1] = ( -(angle.x) * ACCELERATION_RATIO_ANDROID_TO_HW);
+    angleData[2] = ( (angle.z) * ACCELERATION_RATIO_ANDROID_TO_HW);
+
+    accData[0] = ( (acc.y) * ACCELERATION_RATIO_ANDROID_TO_HW);
+    accData[1] = ( -(acc.x) * ACCELERATION_RATIO_ANDROID_TO_HW);
+    accData[2] = ( (acc.z) * ACCELERATION_RATIO_ANDROID_TO_HW);
+
+	
+	return 0;
+}
+
+
+static float angle_pitch_to_angle(float pitch, float accData)
+{	
+	float angle = 0.0f;
+	
+	if((pitch >= 0) && (accData > 0))
+	{
+		pitch = pitch;
+	}
+	else if((pitch >= 0) && (accData < 0))
+	{
+		pitch = 3.14159f - pitch;
+	}
+	else if((pitch < 0) && (accData > 0))
+	{
+		pitch = 6.28318f + pitch;
+	}
+	else if((pitch < 0) && (accData < 0))
+	{
+		pitch = 3.14159f - pitch;
+	}
+
+	angle = pitch * 180 / 3.14159f;	
+
+	return angle;
+
+}
+
+
+static int angle_calc_angle(void)
+{
+	int ret = 0;
+
+	float angleData[3],accData[3];
+	float anglePitch, angleRoll;	
+	float accPitch, accRoll;
+	int angle[2];
+	int keyCtrl[2] = {0,0};
+
+	//get angle and accel data
+	ret = angle_get_acc_data(angleData,accData);
+	if(ret)
+	{
+		ALOGE("%s:line=%d,error:ret=%d\n",__FUNCTION__, __LINE__, ret);
+		return -1;
+	}
+
+	//calculate angle
+	anglePitch = atan2(angleData[0], sqrt((int)(angleData[1] * angleData[1]) + (int)(angleData[2] * angleData[2])));
+	angleRoll = atan2(angleData[1], sqrt((int)(angleData[0] * angleData[0]) + (int)(angleData[2] * angleData[2])));
+
+	accPitch = atan2(accData[0], sqrt((int)(accData[1] * accData[1]) + (int)(accData[2] * accData[2])));
+	accRoll = atan2(accData[1], sqrt((int)(accData[0] * accData[0]) + (int)(accData[2] * accData[2])));
+
+	anglePitch = angle_pitch_to_angle(anglePitch, angleData[2]);
+	angleRoll = angle_pitch_to_angle(angleRoll, angleData[2]);
+
+	accPitch = angle_pitch_to_angle(accPitch, accData[2]);
+	accRoll = angle_pitch_to_angle(accRoll, accData[2]);
+	
+	if(anglePitch > accPitch)
+	angle[0] = (int)(anglePitch - accPitch);
+	else	
+	angle[0] = (int)((anglePitch - accPitch) + 360) % 360;
+
+	if(angleRoll > accRoll)
+	angle[1] = (int)(angleRoll - accRoll);
+	else
+	angle[1] = (int)((angleRoll - accRoll) + 360) % 360;
+
+	//it is gsensor inaccuracy
+	if(angle[0] >= 355)
+		angle[0] = fabs((360 - angle[0]));
+
+	if(angle[1] >= 355)
+		angle[1] = fabs((360 - angle[1]));
+	
+	//control key board
+	if(fabs(angle[0]) > 185)
+	{
+		keyCtrl[0] = 0;	//close keyboard
+		sCountAngle[DISABLE_KEY]++;
+		sCountAngle[ENABLE_KEY] = 0;
+	}
+	else if(fabs(angle[0]) < 180)	
+	{
+		keyCtrl[0] = 1;	//open keyboard	
+		sCountAngle[ENABLE_KEY]++;
+		sCountAngle[DISABLE_KEY] = 0;
+	}
+	//else
+	//ALOGE("%s:do nothing\n",__func__);
+		
+	keyCtrl[1] = angle[0];
+	
+	
+	if((sCountAngle[DISABLE_KEY] > ANGLE_VALID_COUNT) || (sCountAngle[ENABLE_KEY] > ANGLE_VALID_COUNT))
+	{
+		if(sKeyCtrl != keyCtrl[0])
+		{
+#if 0
+			if (sCtrlFd < 0) 
+			{
+				ALOGE("%s:line=%d,error: sAngleFd=%d\n",__FUNCTION__, __LINE__, sCtrlFd);
+				return -1;
+			}
+			
+			if ( 0 > ioctl(sCtrlFd, GSENSOR_IOCTL_KEYBOARD, keyCtrl) )
+			{
+				ALOGE("%s:line=%d,error=%s\n",__FUNCTION__, __LINE__, strerror(errno));
+				return -1;
+			}
+#endif
+			ALOGD("%s:angleData x=%f, y=%f, z=%f, accData x=%f, y=%f, z=%f\n", __FUNCTION__, angleData[0], angleData[1], angleData[2], accData[0],accData[1],accData[2]);	
+			ALOGD("%s:anglePitch=%f, accPitch=%f, angleRoll=%f, accRoll=%f\n", __FUNCTION__, anglePitch, accPitch, angleRoll, accRoll);	
+			ALOGD("%s:angle[0]=%d, angle[1]=%d\n", __FUNCTION__, angle[0], angle[1]);
+
+			sKeyCtrl = keyCtrl[0];
+		}
+
+		if(sCountAngle[DISABLE_KEY] > ANGLE_VALID_COUNT)
+			sCountAngle[DISABLE_KEY] = 0;
+
+		if(sCountAngle[ENABLE_KEY] > ANGLE_VALID_COUNT)
+			sCountAngle[ENABLE_KEY] = 0;
+
+	}
+	
+	return 0;
+}
+
+
+#endif
 
 /*****************************************************************************/
 
@@ -51,9 +336,16 @@ MmaSensor::MmaSensor()
     short flags = 0;
 
     open_device();
+	
+#if defined(ANGLE_SUPPORT)
+	angle_open_device();
+#endif
 
     if (!mEnabled) {
         close_device();
+		#if defined(ANGLE_SUPPORT)
+		angle_close_device();
+		#endif
     }
 }
 
@@ -82,7 +374,10 @@ int MmaSensor::enable(int32_t handle, int en)
 	I("newState = 0x%x, what = 0x%x, mEnabled = 0x%x.", newState, what, mEnabled);
     if ((uint32_t(newState)<<what) != (mEnabled & (1<<what))) {
         if (!mEnabled) {
-            open_device();
+            open_device();			
+			#if defined(ANGLE_SUPPORT)
+			angle_open_device();
+			#endif
         }
        
 		if ( 1 == newState ) {
@@ -101,11 +396,22 @@ int MmaSensor::enable(int32_t handle, int en)
 			}
             mEnabled &= ~(1 << what);
 		}
+
+		#if defined(ANGLE_SUPPORT)	
+		err = angle_enable(handle, en);
+		if(err < 0)
+		{
+			ALOGE("%s:line=%d,error=%d\n",__FUNCTION__, __LINE__, err);
+		}
+		#endif
     }
 
 EXIT:
 	if ( !mEnabled ) {
     	close_device();
+		#if defined(ANGLE_SUPPORT)
+		angle_close_device();
+		#endif
 	}
     D("to exit : mEnabled = 0x%x.", mEnabled);
     return err;
@@ -172,6 +478,9 @@ int MmaSensor::update_delay()
 
 int MmaSensor::readEvents(sensors_event_t* data, int count)
 {
+	#if defined(ANGLE_SUPPORT)	
+	int err = 0;
+	#endif
 	D("Entered : count = %d.", count);
     if (count < 1)
         return -EINVAL;
@@ -207,6 +516,15 @@ int MmaSensor::readEvents(sensors_event_t* data, int count)
             if (!mPendingMask) {
                 mInputReader.next();
             }
+			
+			#if defined(ANGLE_SUPPORT)	
+			err = angle_calc_angle();
+			if(err < 0)
+			{
+				ALOGE("%s:line=%d,error=%d\n",__FUNCTION__, __LINE__, err);
+			}
+			#endif
+			
         } else {
             LOGE("MmaSensor: unknown event (type=%d, code=%d)",
                     type, event->code);

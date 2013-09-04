@@ -26,6 +26,7 @@
 #include <linux/input.h>
 
 #include <cutils/atomic.h>
+#include <math.h>
 
 #include "nusensors.h"
 #include "LightSensor.h"
@@ -36,6 +37,106 @@
 #include "PressureSensor.h"
 #include "TemperatureSensor.h"
 
+#if defined(CALIBRATION_SUPPORT)
+typedef		unsigned short	    uint16;
+typedef		unsigned long	    uint32;
+typedef		unsigned char	    uint8;
+
+#include <fcntl.h>
+#include <sys/ioctl.h>
+
+#define RKNAND_DIASBLE_SECURE_BOOT _IOW('d', 127, unsigned int)
+#define RKNAND_ENASBLE_SECURE_BOOT _IOW('d', 126, unsigned int)
+#define RKNAND_GET_SN_SECTOR       _IOW('d', 3, unsigned int)
+
+#define RKNAND_GET_VENDOR_SECTOR0       _IOW('v', 16, unsigned int)
+#define RKNAND_STORE_VENDOR_SECTOR0     _IOW('v', 17, unsigned int)
+
+#define RKNAND_GET_VENDOR_SECTOR1       _IOW('v', 18, unsigned int)
+#define RKNAND_STORE_VENDOR_SECTOR1     _IOW('v', 19, unsigned int)
+
+#define DRM_KEY_OP_TAG              0x4B4D5244 // "DRMK" 
+#define SN_SECTOR_OP_TAG            0x41444E53 // "SNDA"
+#define DIASBLE_SECURE_BOOT_OP_TAG  0x42534444 // "DDSB"
+#define ENASBLE_SECURE_BOOT_OP_TAG  0x42534E45 // "ENSB"
+#define VENDOR_SECTOR_OP_TAG        0x444E4556 // "VEND"
+
+#define RKNAND_SYS_STORGAE_DATA_LEN 512
+
+typedef struct tagRKNAND_SYS_STORGAE
+{
+    uint32  tag;
+    uint32  len;
+    uint8   data[RKNAND_SYS_STORGAE_DATA_LEN];
+}RKNAND_SYS_STORGAE;
+
+
+typedef struct tagSN_SECTOR_INFO
+{
+    uint32 snSectag;           // "SNDA" 0x41444E53
+    uint32 snSecLen;           // 512
+    uint16 snLen;              // 0:no sn , 0~30,sn len
+    uint8 snData[30];          // sn data
+    uint32 reserved2[(0x200-0x20)/4];
+}SN_SECTOR_INFO,*pSN_SECTOR_INFO;
+
+#define MAX_COUNT_CALIBRATION 100
+static int sCaliFd = -1;
+static int gCountCali = 0;
+static RKNAND_SYS_STORGAE gCalibrationData;
+static int gAccelCaliData[3] = {0, 0, 0};
+
+
+static int sensor_get_calibration_from_vendor1(void)
+{
+    uint32 i;
+    int ret ;
+
+    int sCaliFd = open("/dev/rknand_sys_storage",O_RDWR,0);
+    if(sCaliFd < 0){
+        ALOGE("open /dev/rknand_sys_storage open fail:%s\n",strerror(errno));
+        return -1;
+    }
+
+    gCalibrationData.tag = VENDOR_SECTOR_OP_TAG;
+    gCalibrationData.len = RKNAND_SYS_STORGAE_DATA_LEN-8;
+
+    ret = ioctl(sCaliFd, RKNAND_GET_VENDOR_SECTOR1, &gCalibrationData);
+    if(ret){
+        ALOGE("get vendor_sector error:%s\n",strerror(errno));		
+		close(sCaliFd);
+        return -1;
+    }
+
+
+	if(((gCalibrationData.data[0]&0x7f) > 120) || ((gCalibrationData.data[1]&0x7f) > 120) || ((gCalibrationData.data[2]&0x7f) > 120))
+	{
+		ALOGE("%s:calibration data error:gCalibrationData=0x%x,0x%x,0x%x\n",__func__, gCalibrationData.data[0] & 0x7f, gCalibrationData.data[1] & 0x7f, gCalibrationData.data[2] & 0x7f);
+		gAccelCaliData[0] = 0;
+		gAccelCaliData[1] = 0;
+		gAccelCaliData[2] = 0;
+	}
+	else
+	{
+		gAccelCaliData[0] = (gCalibrationData.data[0] & 0x80)?-(gCalibrationData.data[0]&0x7f):(gCalibrationData.data[0]&0x7f);
+		gAccelCaliData[1] = (gCalibrationData.data[1] & 0x80)?-(gCalibrationData.data[1]&0x7f):(gCalibrationData.data[1]&0x7f);
+		gAccelCaliData[2] = (gCalibrationData.data[2] & 0x80)?-(gCalibrationData.data[2]&0x7f):(gCalibrationData.data[2]&0x7f);
+
+		gAccelCaliData[0] = gAccelCaliData[0]*1000;
+		gAccelCaliData[1] = gAccelCaliData[1]*1000;
+		gAccelCaliData[2] = gAccelCaliData[2]*1000;
+
+	}
+	
+	close(sCaliFd);
+	sCaliFd = -1;
+
+	ALOGD("%s:gAccelCaliData=%d,%d,%d\n",__func__, gAccelCaliData[0], gAccelCaliData[1], gAccelCaliData[2]);
+	
+    return 0;
+}
+
+#endif
 
 /*****************************************************************************/
 
@@ -141,6 +242,7 @@ sensors_poll_context_t::sensors_poll_context_t()
     mPollFds[wake].fd = wakeFds[0];
     mPollFds[wake].events = POLLIN;
     mPollFds[wake].revents = 0;
+
 }
 
 sensors_poll_context_t::~sensors_poll_context_t() {
@@ -154,6 +256,12 @@ sensors_poll_context_t::~sensors_poll_context_t() {
 int sensors_poll_context_t::activate(int handle, int enabled) {
     int index = handleToDriver(handle);
     if (index < 0) return index;
+#if defined(CALIBRATION_SUPPORT)
+	if((index == mma) && enabled)
+	{			
+		sensor_get_calibration_from_vendor1();
+	}
+#endif
     int err =  mSensors[index]->enable(handle, enabled);
     if (enabled && !err) {
         const char wakeMessage(WAKE_MESSAGE);
@@ -183,6 +291,14 @@ int sensors_poll_context_t::pollEvents(sensors_event_t* data, int count)
             if ((mPollFds[i].revents & POLLIN) || (sensor->hasPendingEvents())) {
                 int nb = sensor->readEvents(data, count);	// num of evens received.
 				D("nb = %d.", nb);
+				#if defined(CALIBRATION_SUPPORT)
+				if(i == mma)
+				{
+					data->acceleration.x -= gAccelCaliData[0] * ACCELERATION_RATIO_ANDROID_TO_HW;
+					data->acceleration.y -= gAccelCaliData[1] * ACCELERATION_RATIO_ANDROID_TO_HW;
+					data->acceleration.z -= gAccelCaliData[2] * ACCELERATION_RATIO_ANDROID_TO_HW;
+				}
+				#endif
                 if (nb < count) {
                     // no more data for this sensor
                     mPollFds[i].revents = 0;
