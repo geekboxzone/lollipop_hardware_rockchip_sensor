@@ -40,7 +40,7 @@ static const struct sensor_t sSensorList[] = {
           .maxRange   = 4.0f*9.81f,
           .resolution = (4.0f*9.81f)/256.0f,
           .power      = 0.2f,
-          .minDelay   = 0,
+          .minDelay   = 5000,
           .reserved   = {}
         },
 
@@ -52,7 +52,7 @@ static const struct sensor_t sSensorList[] = {
           .maxRange   = 2000.0f,
           .resolution = 1.0f/16.0f,
           .power      = 6.8f,
-          .minDelay   = 0,
+          .minDelay   = 5000,
           .reserved   = {}
         },
 
@@ -64,7 +64,7 @@ static const struct sensor_t sSensorList[] = {
           .maxRange   = 360.0f,
           .resolution = 1.0f,
           .power      = 7.0f,
-          .minDelay   = 0,
+          .minDelay   = 5000,
           .reserved   = {}
         },
 
@@ -76,7 +76,7 @@ static const struct sensor_t sSensorList[] = {
           .maxRange   = RANGE_GYRO,
           .resolution = CONVERT_GYRO,
           .power      = 6.1f,
-          .minDelay   = 0,
+          .minDelay   = 5000,
           .reserved   = {}
         },
 
@@ -88,7 +88,7 @@ static const struct sensor_t sSensorList[] = {
           .maxRange   = PROXIMITY_THRESHOLD_CM,
           .resolution = PROXIMITY_THRESHOLD_CM,
           .power      = 0.5f,
-          .minDelay   = 0,
+          .minDelay   = 5000,
           .reserved   = {}
         },
 
@@ -101,7 +101,7 @@ static const struct sensor_t sSensorList[] = {
           .maxRange   = 10240.0f,
           .resolution = 1.0f,
           .power      = 0.5f,
-          .minDelay   = 0,
+          .minDelay   = 5000,
           .reserved   = {}
         },
 
@@ -113,7 +113,7 @@ static const struct sensor_t sSensorList[] = {
           .maxRange   = 110000.0f,
           .resolution = 1.0f,
           .power      = 1.0f,
-          .minDelay   = 0,
+          .minDelay   = 5000,
           .reserved   = {}
         },
 
@@ -126,7 +126,7 @@ static const struct sensor_t sSensorList[] = {
           .maxRange   = 110000.0f,
           .resolution = 1.0f,
           .power      = 1.0f,
-          .minDelay   = 0,
+          .minDelay   = 5000,
           .reserved   = {}
         },
 		
