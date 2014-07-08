@@ -60,6 +60,9 @@ struct ext_slave_descr *lsm303dlx_a_get_slave_descr(void);
 #endif
 
 /* MPU6050 Accel */
+struct ext_slave_descr *mpu6050_get_slave_descr(void);
+#undef get_accel_slave_descr
+#define get_accel_slave_descr mpu6050_get_slave_descr
 
 #ifdef CONFIG_MPU_SENSORS_MMA8450	/* Freescale accelerometer */
 struct ext_slave_descr *mma8450_get_slave_descr(void);

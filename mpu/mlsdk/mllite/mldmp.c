@@ -6,7 +6,7 @@
 
 /******************************************************************************
  *
- * $Id: mldmp.c 6075 2011-09-23 03:59:04Z mcaramello $
+ * $Id: mldmp.c 6276 2011-11-09 22:40:46Z mcaramello $
  *
  *****************************************************************************/
 
@@ -44,15 +44,15 @@
 
 /**
  *  @brief  Open the default motion sensor engine.
- *          This function is used to open the default MPL engine,
- *          featuring, for example, sensor fusion (6 axes and 9 axes),
- *          sensor calibration, accelerometer data byte swapping, among
- *          others.
+ *          This function is used to open the default MPL engine, 
+ *          featuring, for example, sensor fusion (6 axes and 9 axes), 
+ *          sensor calibration, accelerometer data byte swapping, among 
+ *          others.  
  *          Compare with the other provided engines.
  *
- *  @pre    inv_serial_start() must have been called to instantiate the serial
+ *  @pre    inv_serial_start() must have been called to instantiate the serial 
  *          communication.
- *
+ *  
  *  Example:
  *  @code
  *    result = inv_dmp_open( );
@@ -96,7 +96,7 @@ inv_error_t inv_dmp_open(void)
 #ifdef ML_USE_DMP_SIM
     do {
         void setup_univ();
-        setup_univ();           /* hijack the read and write paths
+        setup_univ();           /* hijack the read and write paths 
                                    and re-direct them to the simulator */
     } while (0);
 #endif
@@ -121,10 +121,9 @@ inv_error_t inv_dmp_open(void)
         LOG_RESULT_LOCATION(result);
         return result;
     }
-
     inv_init_fifo_hardare();
-
     mldl_cfg = inv_get_dl_config();
+
     if (mldl_cfg->slave[EXT_SLAVE_TYPE_COMPASS]) {
         result = inv_read_compass_asa(inv_obj.mag->asa);
         if (result == INV_SUCCESS) {
@@ -174,7 +173,7 @@ inv_error_t inv_dmp_open(void)
  *  @brief  Start the DMP.
  *
  *  @pre    inv_dmp_open() must have been called.
- *
+ * 
  *  @code
  *     result = inv_dmp_start();
  *     if (INV_SUCCESS != result) {
@@ -192,7 +191,7 @@ inv_error_t inv_dmp_start(void)
     if (inv_get_state() == INV_STATE_DMP_STARTED)
         return INV_SUCCESS;
 
-    /* Power the gyro before transitioning state so that items that would
+    /* Power the gyro before transitioning state so that items that would 
      * normally be cached go directly to the gyro */
     if (INV_CACHE_DMP == 0) {
         unsigned long requested_sensors =
@@ -216,7 +215,7 @@ inv_error_t inv_dmp_start(void)
         LOG_RESULT_LOCATION(result);
         return result;
     }
-    /* This is done after the start since it will modify DMP memory, which
+    /* This is done after the start since it will modify DMP memory, which 
      * will cause a full reset is most cases */
     result = inv_reset_motion();
     if (result) {
@@ -235,7 +234,7 @@ inv_error_t inv_dmp_start(void)
  *  @brief  Stops the DMP and puts it in low power.
  *
  *  @pre    inv_dmp_start() must have been called.
- *
+ * 
  *  @return INV_SUCCESS, Non-zero error code otherwise.
  */
 inv_error_t inv_dmp_stop(void)
@@ -276,12 +275,12 @@ inv_error_t inv_dmp_stop(void)
  *          Does not close the serial communication. To do that,
  *          call inv_serial_stop().
  *          After calling inv_dmp_close() another DMP module can be
- *          loaded in the MPL with the corresponding necessary
- *          intialization and configurations, via any of the
+ *          loaded in the MPL with the corresponding necessary 
+ *          intialization and configurations, via any of the 
  *          MLDmpXXXOpen functions.
  *
  *  @pre    inv_dmp_open() must have been called.
- *
+ * 
  *  @code
  *     result = inv_dmp_close();
  *     if (INV_SUCCESS != result) {

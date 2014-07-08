@@ -146,7 +146,7 @@ inv_error_t inv_get_compass_data(long *data)
                                                     tmp);
         if (result) {
             if (COMPASS_DEBUG) {
-                MPL_LOGI("inv_mpu_read_compass returned %d\n", result);
+                MPL_LOGV("inv_mpu_read_compass returned %d\n", result);
             }
             return result;
         }
@@ -160,12 +160,12 @@ inv_error_t inv_get_compass_data(long *data)
                     ((long)((signed char)tmp[2 * ii + 1]) << 8) + tmp[2 * ii];
         }
     } else { /* compass on the 2nd bus  or  DMP is off */
-        return INV_ERROR_INVALID_CONFIGURATION;
+        result = inv_get_external_sensor_data(data, 3);
+        if (result) {
+            LOG_RESULT_LOCATION(result);
+            return result;
+        }
     }
-
-   	if (COMPASS_DEBUG) {
-       MPL_LOGI("compass data:%d,%d,%d\n", data[0],data[1],data[2]);
-    }	
     data[0] = inv_q30_mult(data[0], inv_obj.mag->asa[0]);
     data[1] = inv_q30_mult(data[1], inv_obj.mag->asa[1]);
     data[2] = inv_q30_mult(data[2], inv_obj.mag->asa[2]);

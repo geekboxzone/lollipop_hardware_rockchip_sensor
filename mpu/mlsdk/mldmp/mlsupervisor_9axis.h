@@ -6,7 +6,7 @@
 
 /******************************************************************************
  *
- * $Id: mlsupervisor_9axis.h 6028 2011-09-12 19:03:26Z mcaramello $
+ * $Id: mlsupervisor_9axis.h 6271 2011-11-09 01:05:14Z kkeal $
  *
  *****************************************************************************/
 
@@ -40,6 +40,10 @@ inv_error_t inv_disable_9x_fusion_basic(void);
 
 inv_error_t inv_enable_9x_fusion_external(void);
 inv_error_t inv_disable_9x_fusion_external(void);
+
+inv_error_t inv_enable_9x_fusion_outside(void);
+inv_error_t inv_disable_9x_fusion_outside(void);
+
 
 inv_error_t inv_enable_maintain_heading(void);
 inv_error_t inv_disable_maintain_heading(void);

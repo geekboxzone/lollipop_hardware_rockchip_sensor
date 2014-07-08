@@ -237,6 +237,9 @@ float inv_get_calibration_temp_difference(void)
  *              a pointer to store the temperature.
  *  @return INV_SUCCESS if successful, a non-zero error code otherwise.
  */
+
+#define ERROR_TEMP 	2462307L
+
 static inv_error_t temp_comp_get_temp(float *temp)
 {
     long temperature;
@@ -248,6 +251,9 @@ static inv_error_t temp_comp_get_temp(float *temp)
     //    LOG_RESULT_LOCATION(result);
     //    return result;
     //}
+
+	if(temperature == ERROR_TEMP)
+		return INV_ERROR;
     *temp = ((float)temperature) / 65536.0f;
     return INV_SUCCESS;
 }
@@ -260,24 +266,6 @@ static inv_error_t temp_comp_get_temp(float *temp)
  *              A pointer to store the gyro data for the 3 axis.
  *  @return INV_SUCCESS if successful, a non-zero error code otherwise.
  */
-static inv_error_t temp_comp_get_gyro(float gyro[3])
-{
-    long sensors[6];
-    int i;
-    //inv_error_t result;
-
-    (void) inv_get_gyro_sensor(sensors);
-    //result = inv_get_gyro_sensor(sensors);
-    //if (result) {
-    //    LOG_RESULT_LOCATION(result);
-    //    return result;
-    //}
-    for (i = 0; i < GYRO_NUM_AXES; i++) {
-        gyro[i] =  (float)sensors[i] * inv_obj.gyro->sens / 1073741824.0f;
-        gyro[i] += (float)inv_obj.gyro->bias[i] / 65536.0f;
-    }
-    return INV_SUCCESS;
-}
 /**
  *  @brief  Find the right temperature bin.
  *  @param  temp
@@ -388,7 +376,9 @@ static inv_error_t temp_comp_add_data(void)
     /* since AddData runs only in "no motion" state, this point represents
        a no motion point */
     temp_comp_get_temp(&newTemp);
-    temp_comp_get_gyro(newGyroData);
+    newGyroData[0] = (float)inv_obj.gyro->bias[0] / (1L << 16);
+    newGyroData[1] = (float)inv_obj.gyro->bias[1] / (1L << 16);
+    newGyroData[2] = (float)inv_obj.gyro->bias[2] / (1L << 16);
 
     /* got data from a previous run */
     if (tcData.gotLastData) {
@@ -449,6 +439,117 @@ static inv_error_t temp_comp_add_data(void)
     tcData.prevBias[1] = inv_obj.gyro->bias[1];
     tcData.prevBias[2] = inv_obj.gyro->bias[2];
     return INV_SUCCESS;
+}
+
+
+static inv_error_t inv_set_dmp_intercept(void)
+{
+    inv_error_t result;
+    struct mldl_cfg *mldl_cfg = inv_get_dl_config();
+    float intercept[3];
+    extern struct inv_obj_t inv_obj;
+    signed char *orient;
+    unsigned char regs[12];
+
+    orient = mldl_cfg->pdata->orientation;
+    intercept[0] = orient[0] * inv_obj.gyro_tc->x_gyro_coef[0] +
+        orient[1] * inv_obj.gyro_tc->y_gyro_coef[0] +
+        orient[2] * inv_obj.gyro_tc->z_gyro_coef[0];
+    intercept[1] = orient[3] * inv_obj.gyro_tc->x_gyro_coef[0] +
+        orient[4] * inv_obj.gyro_tc->y_gyro_coef[0] +
+        orient[5] * inv_obj.gyro_tc->z_gyro_coef[0];
+    intercept[2] = orient[6] * inv_obj.gyro_tc->x_gyro_coef[0] +
+        orient[7] * inv_obj.gyro_tc->y_gyro_coef[0] +
+        orient[8] * inv_obj.gyro_tc->z_gyro_coef[0];
+
+    // We're in units of DPS, convert it back to chip units
+    intercept[0] = intercept[0] * (1L<<16) * inv_obj.gyro->sf / inv_obj.gyro->sens;
+    intercept[1] = intercept[1] * (1L<<16) * inv_obj.gyro->sf / inv_obj.gyro->sens;
+    intercept[2] = intercept[2] * (1L<<16) * inv_obj.gyro->sf / inv_obj.gyro->sens;
+
+    inv_int32_to_big8((long)intercept[0],regs);
+    inv_int32_to_big8((long)intercept[1],&regs[4]);
+    inv_int32_to_big8((long)intercept[2],&regs[8]);
+
+    result = inv_set_mpu_memory(KEY_D_2_96, 12, regs);
+    return result;
+}
+
+static inv_error_t inv_init_dmp_tempcomp(void)
+{
+    short tr;
+    long tr32;
+    unsigned char regs[4];
+    inv_error_t result;
+
+    tcData.first_pass = 1;
+    result = inv_get_mpu_memory(KEY_D_2_108, 4, regs);
+    tr32 = inv_big8_to_int32(regs);
+    if (tr32 == 0)
+    {
+        // We need to initialize the temperature and bias for temp comp
+        // These will get overwritten once a no motion event occurs on the DMP
+
+        // Set the current temperature
+        result = inv_get_temperature_raw(&tr);
+        if (result) {
+            LOG_RESULT_LOCATION(result);
+            return result;
+        }
+        tr32 = (long)tr<<15;
+        result = inv_set_mpu_memory(KEY_D_2_108, 4, inv_int32_to_big8(tr32,regs));
+        if (result) {
+            LOG_RESULT_LOCATION(result);
+            return result;
+        }
+
+        // Set the bias
+        result = inv_set_dmp_intercept();
+    }
+    return result;
+}
+
+/** Gyro slope in dps which gets pushed down to DMP for temperature correction on the DMP
+*/
+inv_error_t inv_set_dmp_slope(float slope_x, float slope_y, float slope_z)
+{
+    inv_error_t result;
+    struct mldl_cfg *mldl_cfg = inv_get_dl_config();
+    unsigned char regs[4];
+    float scale;
+    long sf;
+    long slp;
+    float slope[3];
+    extern struct inv_obj_t inv_obj;
+    signed char *orient;
+
+    orient = mldl_cfg->pdata->orientation;
+    slope[0] = orient[0] * slope_x + orient[1] * slope_y + orient[2] * slope_z;
+    slope[1] = orient[3] * slope_x + orient[4] * slope_y + orient[5] * slope_z;
+    slope[2] = orient[6] * slope_x + orient[7] * slope_y + orient[8] * slope_z;
+
+    if (mldl_cfg->mpu_chip_info->gyro_sens_trim != 0) {
+        sf = 2000 * 131 / mldl_cfg->mpu_chip_info->gyro_sens_trim;
+    } else {
+        sf = 2000;
+    }
+    // inv_obj.gyro->sf converts from chip*2^16 to gyro used in DMP
+    scale = (float)inv_obj.gyro->sf * tcData.temperatureRange / (1L<<16) / sf;
+    slp = (long)(scale * slope[0]);
+    result = inv_set_mpu_memory(KEY_D_2_244, 4, inv_int32_to_big8(slp,regs));
+    if (result) {
+        LOG_RESULT_LOCATION(result);
+        return result;
+    }
+    slp = (long)(scale * slope[1]);
+    result = inv_set_mpu_memory(KEY_D_2_248, 4, inv_int32_to_big8(slp,regs));
+    if (result) {
+        LOG_RESULT_LOCATION(result);
+        return result;
+    }
+    slp = (long)(scale * slope[2]);
+    result = inv_set_mpu_memory(KEY_D_2_252, 4, inv_int32_to_big8(slp,regs));
+    return result;
 }
 
 
@@ -566,6 +667,23 @@ static inv_error_t temp_comp_recompute(void)
     }
 #endif
 
+    {
+        inv_error_t result;
+        if (tcData.first_pass == 0) {
+            result = inv_init_dmp_tempcomp();
+            if (result) {
+                LOG_RESULT_LOCATION(result);
+                return result;
+            }
+        }
+        result = inv_set_dmp_slope(inv_obj.gyro_tc->x_gyro_coef[1],
+                                   inv_obj.gyro_tc->y_gyro_coef[1],
+                                   inv_obj.gyro_tc->z_gyro_coef[1]);
+        if (result) {
+            LOG_RESULT_LOCATION(result);
+            return result;
+        }
+    }
 
     tcData.haveSlope = true;
 
@@ -581,57 +699,6 @@ static inv_error_t temp_comp_recompute(void)
 /**
  *  @brief  Apply temperature compensation table to gyro bias.
  */
-static void temp_comp_apply(void)
-{
-    float newTemp;
-    tcData.gotLastData = false;
-
-    // Get Current Temperature in Celcius.
-    temp_comp_get_temp(&newTemp);
-
-	if (tcData.haveSlope) {
-		MPL_LOGV("APPLY: temp comp have slope\n");
-	} else {
-		MPL_LOGV("APPLY: temp comp no slope\n");
-	}
-
-    if (tcData.haveSlope) {
-        const float tempDelta = newTemp - tcData.noMotionTemp;
-        /*  Use slope from temperature table, and
-            offset from most recent no motion bias to prevent
-            any hysteresis effects */
-        inv_obj.gyro_tc->temp_bias[0] = (long)(
-            (tcData.noMotionBiases[0] + inv_obj.gyro_tc->x_gyro_coef[1] * tempDelta) *
-            65536.0f);
-        inv_obj.gyro_tc->temp_bias[1] = (long)(
-            (tcData.noMotionBiases[1] + inv_obj.gyro_tc->y_gyro_coef[1] * tempDelta) *
-            65536.0f);
-        inv_obj.gyro_tc->temp_bias[2] = (long)(
-            (tcData.noMotionBiases[2] + inv_obj.gyro_tc->z_gyro_coef[1] * tempDelta) *
-            65536.0f);
-        inv_obj.lite_fusion->got_no_motion_bias = true;
-
-        /* signal the bias tracker the gyro temp comp offset are
-           ready to use */
-        if (inv_get_motion_state() == INV_MOTION) {
-            inv_set_gyro_bias_in_dps(
-                inv_obj.gyro_tc->temp_bias, INV_SGB_TEMP_COMP);
-        }
-
-        MPL_LOGV(
-            "temp_comp -> slope applied : %+10.3f degC\n"
-            "(%+10.3f + %+10.3f) = %+10.3f\n"
-            "(%+10.3f + %+10.3f) = %+10.3f\n"
-            "(%+10.3f + %+10.3f) = %+10.3f\n",
-            tempDelta,
-            tcData.noMotionBiases[0], inv_obj.gyro_tc->x_gyro_coef[1] * tempDelta,
-            (float)inv_obj.gyro_tc->temp_bias[0] / 65536.f,
-            tcData.noMotionBiases[1], inv_obj.gyro_tc->y_gyro_coef[1] * tempDelta,
-            (float)inv_obj.gyro_tc->temp_bias[1] / 65536.f,
-            tcData.noMotionBiases[2], inv_obj.gyro_tc->z_gyro_coef[1] * tempDelta,
-            (float)inv_obj.gyro_tc->temp_bias[2] / 65536.f);
-    }
-}
 
 /**
  *  @brief  Recompute the temperature compensation table using the values
@@ -721,7 +788,6 @@ inv_error_t temp_comp_load_calibration_handler(void)
             inv_obj.lite_fusion->got_no_motion_bias = true;
         }
     }
-    temp_comp_apply();
     return INV_SUCCESS;
 }
 
@@ -736,6 +802,11 @@ inv_error_t inv_temp_comp_supervisor(struct inv_obj_t *inv_obj)
     inv_error_t result;
     unsigned long deltaTime, time;
     char nomotion;
+
+	if(!inv_get_gyro_present())
+	{
+		return INV_SUCCESS;
+	}
 
     if (inv_obj->sys->cal_loaded_flag) {
         inv_obj->sys->cal_loaded_flag = false;
@@ -772,7 +843,6 @@ inv_error_t inv_temp_comp_supervisor(struct inv_obj_t *inv_obj)
         if (tcData.motionTimer > 1200) {
             MPL_LOGV("Supervisor: motion\n");
             tcData.motionTimer = 0;
-                temp_comp_apply();
         }
     }
 

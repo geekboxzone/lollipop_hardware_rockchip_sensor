@@ -1,9 +1,9 @@
 SHELL=/bin/bash
 
 TARGET 	     = android
-PRODUCT      = rk29sdk
-ANDROID_ROOT = /home/android/android4.0/android-4.0.1_r1
-KERNEL_ROOT  = /home/android/android4.0/android-4.0.1_r1kernel
+PRODUCT      = beagleboard
+ANDROID_ROOT = /Software/Android/trunk/0xdroid/beagle-eclair
+KERNEL_ROOT  = /Software/Android/trunk/0xdroid/kernel
 MLSDK_ROOT   = $(CURDIR)
 
 ifeq ($(VERBOSE),1)
@@ -22,10 +22,11 @@ LIB_FOLDERS += mllite/mpl/$(TARGET)
 LIB_FOLDERS += mldmp/mpl/$(TARGET)
 LIB_FOLDERS += external/aichi/mpl/$(TARGET)
 LIB_FOLDERS += external/akmd/mpl/$(TARGET)
+LIB_FOLDERS += external/akm8963/mpl/$(TARGET)
+LIB_FOLDERS += external/memsic/mpl/$(TARGET)
 
 APP_FOLDERS  = mlapps/DemoAppPoll/PollUnix
-
-ifeq ($(DEVICE),MPU3050)
+ifeq ($(MPU_NAME),MPU3050)
 APP_FOLDERS += mltools/driver_selftest
 endif
 
@@ -43,6 +44,8 @@ define maker_libs
 	echo "MLLITE_LIB_NAME     = $(MLLITE_LIB_NAME)" >> /tmp/makeecho
 	echo "AICHI_LIB_NAME      = $(AICHI_LIB_NAME)" >> /tmp/makeecho
 	echo "AKM_LIB_NAME        = $(AKM_LIB_NAME)" >> /tmp/makeecho
+	echo "AKM8963_LIB_NAME    = $(AKM8963_LIB_NAME)" >> /tmp/makeecho
+	echo "MEMSIC_LIB_NAME     = $(MEMSIC_LIB_NAME)" >> /tmp/makeecho
 	echo "MPL_LIB_NAME        = $(MPL_LIB_NAME)" >> /tmp/makeecho 
 	echo "MLSDK_ROOT          = $(MLSDK_ROOT)" >> /tmp/makeecho 
 
@@ -60,6 +63,16 @@ define maker_libs
 	if test -f external/akmd/mpl/$(TARGET)/Android-shared.mk; then \
 		$(call echo_in_colors, "\n<making '$(1)' in folder 'external/akmd/mpl/$(TARGET)'>\n"); \
 		make MLSDK_ROOT=$(MLSDK_ROOT) AKM_LIB_NAME=$(AKM_LIB_NAME) ANDROID_ROOT=$(ANDROID_ROOT) KERNEL_ROOT=$(KERNEL_ROOT) PRODUCT=$(PRODUCT) -C external/akmd/mpl/$(TARGET) -f Android-shared.mk $@ $(DUMP); \
+	fi
+
+	if test -f external/akm8963/mpl/$(TARGET)/Android-shared.mk; then \
+		$(call echo_in_colors, "\n<making '$(1)' in folder 'external/akm8963/mpl/$(TARGET)'>\n"); \
+		make MLSDK_ROOT=$(MLSDK_ROOT) AKM8963_LIB_NAME=$(AKM8963_LIB_NAME) ANDROID_ROOT=$(ANDROID_ROOT) KERNEL_ROOT=$(KERNEL_ROOT) PRODUCT=$(PRODUCT) -C external/akm8963/mpl/$(TARGET) -f Android-shared.mk $@ $(DUMP); \
+	fi
+
+	if test -f external/memsic/mpl/$(TARGET)/Android-shared.mk; then \
+		$(call echo_in_colors, "\n<making '$(1)' in folder 'external/memsic/mpl/$(TARGET)'>\n"); \
+		make MLSDK_ROOT=$(MLSDK_ROOT) MEMSIC_LIB_NAME=$(MEMSIC_LIB_NAME) ANDROID_ROOT=$(ANDROID_ROOT) KERNEL_ROOT=$(KERNEL_ROOT) PRODUCT=$(PRODUCT) -C external/memsic/mpl/$(TARGET) -f Android-shared.mk $@ $(DUMP); \
 	fi
 
 	if test -f mldmp/mpl/$(TARGET)/Android-shared.mk; then \

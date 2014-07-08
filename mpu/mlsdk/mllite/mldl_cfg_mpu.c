@@ -69,13 +69,13 @@ static int mldl_cfg_pull_gyro(void *gyro_handle, __u32 key,
                               __u32 len, void *data)
 {
     struct ext_slave_config config;
+	int ret=0;
     config.key = key;
     config.len = len;
     config.apply = 0;
     config.data = data;
-    if (ioctl((int)gyro_handle, MPU_GET_CONFIG_GYRO, &config))
+    if(ioctl((int)gyro_handle, MPU_GET_CONFIG_GYRO, &config))
         return errno;
-
     return 0;
 }
 

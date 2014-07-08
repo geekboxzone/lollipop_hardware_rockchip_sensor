@@ -36,7 +36,7 @@
  */
 #ifndef _LIBS_CUTILS_MPL_LOG_H
 #define _LIBS_CUTILS_MPL_LOG_H
-#include <errno.h>
+
 #include "mltypes.h"
 #include <stdarg.h>
 
@@ -44,7 +44,7 @@
 #ifdef NDK_BUILD
 #include "log_macros.h"
 #else
-#include <utils/Log.h>		/* For the LOG macro */
+#include <cutils/log.h>		/* For the LOG macro */
 #endif
 #endif
 
@@ -121,8 +121,7 @@ extern "C" {
 			MPL_LOG(LOG_VERBOSE, MPL_LOG_TAG, fmt, ##__VA_ARGS__);\
 	} while (0)
 #else
-//#define MPL_LOGV(fmt, ...) MPL_LOG(LOG_VERBOSE, MPL_LOG_TAG, fmt, ##__VA_ARGS__)
-#define MPL_LOGV(fmt, ...) MPL_LOG(LOG_INFO, MPL_LOG_TAG, fmt, ##__VA_ARGS__)
+#define MPL_LOGV(fmt, ...) MPL_LOG(LOG_VERBOSE, MPL_LOG_TAG, fmt, ##__VA_ARGS__)
 #endif
 #endif
 
@@ -321,7 +320,7 @@ static inline void __print_result_location(int result,
 					   const char *file,
 					   const char *func, int line)
 {
-	MPL_LOGE("%s|%s|%d returning %d,%s\n", file, func, line, result,strerror(errno));
+	MPL_LOGE("%s|%s|%d returning %d\n", file, func, line, result);
 }
 
 #define LOG_RESULT_LOCATION(condition) \

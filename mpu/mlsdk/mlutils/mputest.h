@@ -6,7 +6,7 @@
 
 /******************************************************************************
  *
- * $Id: mputest.h 6132 2011-10-01 03:17:27Z mcaramello $
+ * $Id: mputest.h 6276 2011-11-09 22:40:46Z mcaramello $
  *
  *****************************************************************************/
 
@@ -26,8 +26,8 @@ void inv_set_test_parameters(unsigned int slave_addr, float sensitivity,
                              int bias_thresh, float sp_shift_thresh,
                              unsigned short accel_samples);
 int inv_device_test(void *mlsl_handle, unsigned long sensor_mask,
-                uint_fast8_t perform_full_test, uint_fast8_t provide_result);
-int inv_accel_z_test(void *mlsl_handle);
+                    uint_fast8_t perform_full_test,
+                    uint_fast8_t provide_result);
 
 #ifdef __cplusplus
 }

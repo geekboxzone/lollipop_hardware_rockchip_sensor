@@ -14,17 +14,45 @@ SHARED_LIB_EXT = so
 # =? assignment sets it only if not already defined
 MLPLATFORM_LIB_NAME ?= mlplatform
 MLLITE_LIB_NAME     ?= mllite
-MPL_LIB_NAME        ?= mpl
+MPL_LIB_NAME        ?= mplmpu
 AICHI_LIB_NAME      ?= ami
 AKM_LIB_NAME        ?= akmd
+AKM8963_LIB_NAME    ?= akm8963
+MEMSIC_LIB_NAME     ?= memsic
 
 AICHI_EXT_LIB       ?= libami_sensor_mw.so
 AKM_EXT_LIB         ?= libAK8975.a
+AKM8963_EXT_LIB     ?= libAK8963.a
+MEMSIC_EXT_LIB      ?= compasslib_h6_gcc_armv4t.a
 
 
 ## applications ##
 SHARED_APP_SUFFIX = -shared
 STATIC_APP_SUFFIX = -static
+
+#
+# NOTE: official HAL release builds are independent from the device the 
+#       underlying MPL and kernel driver is build with. 
+#       Therefore the MPU_NAME define should be kept empty or undefined.
+#
+#       Un-official or engineering builds might contains cross-device code
+#       that needs to be compiled with one of the following defines 
+#       CONFIG_MPU_SENSORS_MPUxxxx; in that case defining MPU_NAME equal to one 
+#       of MPU3050, MPU6050A2, or MPU6050B1 provides the necessary definition.
+#       e.g. when using a top level make, add MPU_NAME=MPUxxxx to the 
+#            command line.
+#            when using mmm, export MPU_NAME=MPUxxxx prior to running the build
+#            and use 'mmm -e' to honor the environment variables' settings.
+#
+ifeq ($(MPU_NAME),MPU3050)
+CFLAGS += -DCONFIG_MPU_SENSORS_MPU3050=1
+endif
+ifeq ($(MPU_NAME),MPU6050A2)
+CFLAGS += -DCONFIG_MPU_SENSORS_MPU6050A2=1
+endif
+ifeq ($(MPU_NAME),MPU6050B1)
+CFLAGS += -DCONFIG_MPU_SENSORS_MPU6050B1=1
+endif
 
 ####################################################################################################
 ## includes and linker

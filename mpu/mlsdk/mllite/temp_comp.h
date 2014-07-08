@@ -35,6 +35,7 @@ int   inv_temp_comp_find_bin(float temp);
 inv_error_t  inv_temp_comp_reset(unsigned char new_state);
 float inv_get_calibration_temp_difference(void);
 
+inv_error_t inv_set_dmp_slope(float slope_x, float slope_y, float slope_z);
 
 #ifdef __cplusplus
 }

@@ -5,7 +5,7 @@
  */
 /*******************************************************************************
  *
- * $Id: mlFIFO.c 6204 2011-10-15 00:38:33Z mcaramello $
+ * $Id: mlFIFO.c 6241 2011-10-28 20:54:58Z mcaramello $
  *
  ******************************************************************************/
 
@@ -21,7 +21,7 @@
 
 #include <string.h>
 #include "mpu.h"
-#include "mpu3050.h"
+#include "mpu6050b1.h"
 #include "mlFIFO.h"
 #include "mlFIFOHW.h"
 #include "dmpKey.h"
@@ -318,7 +318,7 @@ static inv_error_t inv_set_footer(void)
                         tmp_count += 2;
                     }
                 }
-                
+
 #else           /* Big Endian platform */
                 /* special case for byte ordering on accel data */
                 if ((i == CONFIG_RAW_DATA) && (j >= 3)) {
@@ -582,7 +582,7 @@ inv_error_t inv_set_gyro_data_source(uint_fast8_t source)
             regs[0] = DINA90 + 5;
             regs[1] = DINAF8 + 1;
             regs[2] = DINA20;
-            regs[3] = DINA28; 
+            regs[3] = DINA28;
             regs[4] = DINA30;
         } else if (fifo_obj.gyro_source == INV_GYRO_FROM_RAW) {
             regs[0] = DINA90 + 10;
@@ -615,25 +615,24 @@ inv_error_t inv_set_gyro_data_source(uint_fast8_t source)
 
 /*
         Convenience function to print the data coming out of the fifo
-*/ 
-void print_debug_dmp_output(unsigned char *dmp_pkt, uint_fast16_t nbytes)
+*/
+void print_debug_dmp_output(unsigned char *dmp_pkt, int_fast16_t nbytes)
 {
     char strout[MAX_FIFO_LENGTH * 2 + 10];
     int ii;
-	
     strncpy(strout, "    : ", strlen("    : ") + 1);
     for (ii = 0; ii < nbytes; ii++)
         if (ii % 10 == 0) {
-            char dec[5]; 
+            char dec[5];
             snprintf(dec, strlen("  ") + 1, "%-2d", ii / 10);
             strncat(strout, dec, strlen(dec) + 1);
-        } else 
+        } else
             strncat(strout, "  ", strlen("  ") + 1);
     MPL_LOGV("%s\n", strout);
-    
+
     strncpy(strout, "DMP : ", 7);
     for (ii = 0; ii < nbytes; ii++) {
-        char dec[5]; 
+        char dec[5];
         snprintf(dec, strlen("  ") + 1, "%02x", dmp_pkt[ii]);
         strncat(strout, dec, strlen(dec) + 1);
     }
@@ -802,8 +801,8 @@ inv_error_t inv_process_fifo_packet(const unsigned char *dmpData)
         p[fifo_obj.offsets[kk]] = *dmpData++;
     }
 
-    /* If multiplies are much greater cost than if conditionals, 
-       you could check to see if fifo_scale is non-zero first, 
+    /* If multiplies are much greater cost than if conditionals,
+       you could check to see if fifo_scale is non-zero first,
        or equal to (1L << 30) */
     for (kk = 0; kk < REF_LAST; ++kk) {
         fifo_obj.decoded[kk] =
@@ -815,17 +814,17 @@ inv_error_t inv_process_fifo_packet(const unsigned char *dmpData)
            &fifo_obj.decoded[REF_QUATERNION], 4 * sizeof(long));
 
     if (fifo_obj.data_config[CONFIG_QUAT]) {
-        /* Make sure quaternion data looks good. 
+        /* Make sure quaternion data looks good.
            A bad connection may cause a problem with the data set */
         long long qsrd;
         qsrd =
-            (long long)fifo_obj.decoded[REF_QUATERNION] * 
+            (long long)fifo_obj.decoded[REF_QUATERNION] *
                        fifo_obj.decoded[REF_QUATERNION] +
-            (long long)fifo_obj.decoded[REF_QUATERNION + 1] * 
+            (long long)fifo_obj.decoded[REF_QUATERNION + 1] *
                        fifo_obj.decoded[REF_QUATERNION + 1] +
-            (long long)fifo_obj.decoded[REF_QUATERNION + 2] * 
+            (long long)fifo_obj.decoded[REF_QUATERNION + 2] *
                        fifo_obj.decoded[REF_QUATERNION + 2] +
-            (long long)fifo_obj.decoded[REF_QUATERNION + 3] * 
+            (long long)fifo_obj.decoded[REF_QUATERNION + 3] *
                        fifo_obj.decoded[REF_QUATERNION + 3];
         qsrd -= (1LL << 60);
         if (qsrd < 0)
@@ -851,8 +850,8 @@ inv_error_t inv_process_fifo_packet(const unsigned char *dmpData)
  */
 long inv_decode_temperature(short temp_reg)
 {
-    /* Celcius = 35 + (T + 13200) / 280 */
-    return 5383314L + inv_q30_mult((long)temp_reg << 16, 3834792L);
+    /* Celcius = 35 + (T + 927.4) / 360.6 */
+    return 2462307L + inv_q30_mult((long)temp_reg << 16, 2977653L);
 }
 
 /** @internal
@@ -1038,8 +1037,18 @@ inv_error_t inv_get_gyro_and_accel_sensor(long *data)
  */
 inv_error_t inv_get_external_sensor_data(long *data, int size)
 {
-    memset(data, 0, COMPASS_NUM_AXES * sizeof(long));
-    return INV_ERROR_FEATURE_NOT_IMPLEMENTED;
+    int ii;
+    if (data == NULL)
+        return INV_ERROR_INVALID_PARAMETER;
+
+    if (!fifo_obj.data_config[CONFIG_RAW_EXTERNAL])
+        return INV_ERROR_FEATURE_NOT_ENABLED;
+
+    for (ii = 0; ii < size && ii < 6; ii++) {
+        data[ii] = fifo_obj.decoded[REF_RAW_EXTERNAL + ii];
+    }
+
+    return INV_SUCCESS;
 }
 
 /**
@@ -1371,12 +1380,14 @@ inv_error_t inv_send_quaternion(uint_fast16_t accuracy)
 inv_error_t inv_send_sensor_data(uint_fast16_t elements, uint_fast16_t accuracy)
 {
     int result;
-    INVENSENSE_FUNC_START;
-    unsigned char regs[4] = { DINAA0 + 3,
-                              DINAA0 + 3,
-                              DINAA0 + 3,
-                              DINAA0 + 3
+    unsigned char regs[10] = { DINAA0 + 3, DINAA0 + 3, DINAA0 + 3,
+                               DINAA0 + 3, DINAA0 + 3, DINAA0 + 3,
+                               DINAA0 + 3, DINAA0 + 3, DINAA0 + 3, DINAA0 + 3
     };
+
+    struct mldl_cfg *mldl_cfg = inv_get_dl_config();
+
+    char compasspresent = inv_compass_present();
 
     if (inv_get_state() < INV_STATE_DMP_OPENED)
         return INV_ERROR_SM_IMPROPER_STATE;
@@ -1386,40 +1397,61 @@ inv_error_t inv_send_sensor_data(uint_fast16_t elements, uint_fast16_t accuracy)
 
     elements = inv_set_fifo_reference(elements, accuracy, REF_RAW, 7);
 
-    if (elements & 0x03) {
-        elements |= 0x03;
-        regs[0] = DINA20;
+    if (elements & 1)
+        fifo_obj.data_config[CONFIG_TEMPERATURE] = 1 | INV_16_BIT;
+    else
+        fifo_obj.data_config[CONFIG_TEMPERATURE] = 0;
+    if (elements & 0x7e)
+        fifo_obj.data_config[CONFIG_RAW_DATA] =
+            (0x3f & (elements >> 1)) | INV_16_BIT;
+    else
+        fifo_obj.data_config[CONFIG_RAW_DATA] = 0;
+
+    if (elements & INV_ELEMENT_1) {
+        regs[0] = DINACA;
     }
-    if (elements & 0x0C) {
-        elements |= 0x0C;
-        regs[1] = DINA28;
+    if (elements & INV_ELEMENT_2) {
+        regs[1] = DINBC4;
     }
-    if (elements & 0x30) {
-        elements |= 0x30;
-        regs[2] = DINA30;
+    if (elements & INV_ELEMENT_3) {
+        regs[2] = DINACC;
     }
-    if (elements & 0x40) {
-        elements |= 0xC0;
-        regs[3] = DINA38;
+    if (elements & INV_ELEMENT_4) {
+        regs[3] = DINBC6;
+    }
+    if ((elements & INV_ELEMENT_5) || (elements & INV_ELEMENT_6)
+        || (elements & INV_ELEMENT_7)) {
+        if (mldl_cfg->slave[EXT_SLAVE_TYPE_ACCEL] &&
+            ACCEL_ID_MPU6050 == mldl_cfg->slave[EXT_SLAVE_TYPE_ACCEL]->id) {
+            regs[4] = DINBC0;
+            regs[5] = DINAC8;
+            regs[6] = DINBC2;
+        } else {
+            if (compasspresent) {
+                regs[4] = DINA80 + 1;
+                regs[5] = DINBC4 + 1;
+                regs[6] = DINACD;
+                regs[7] = DINBC6 + 1;
+                regs[8] = DINA80;
+            } else {
+                regs[4] = DINACF;
+                regs[5] = DINA80 + 1;
+                regs[6] = DINBC0 + 1;
+                regs[7] = DINAC9;
+                regs[8] = DINA80;
+            }
+        }
     }
 
-    result = inv_set_mpu_memory(KEY_CFG_15, 4, regs);
+    result = inv_set_mpu_memory(KEY_CFG_15, 10, regs);
+
     if (result) {
         LOG_RESULT_LOCATION(result);
         return result;
     }
 
-    if (elements & 0x01)
-        fifo_obj.data_config[CONFIG_TEMPERATURE] = 1 | INV_16_BIT;
-    else
-        fifo_obj.data_config[CONFIG_TEMPERATURE] = 0;
-    if (elements & 0xfe)
-        fifo_obj.data_config[CONFIG_RAW_DATA] =
-            (0x7f & (elements >> 1)) | INV_16_BIT;
-    else
-        fifo_obj.data_config[CONFIG_RAW_DATA] = 0;
-
     return inv_set_footer();
+
 }
 
 /** Sends raw external data to the FIFO.
@@ -1434,7 +1466,53 @@ inv_error_t inv_send_sensor_data(uint_fast16_t elements, uint_fast16_t accuracy)
 inv_error_t inv_send_external_sensor_data(uint_fast16_t elements,
                                           uint_fast16_t accuracy)
 {
-    return INV_ERROR_FEATURE_NOT_IMPLEMENTED;    /* not supported */
+    int result;
+    unsigned char regs[6] = {
+        DINAA0 + 3, DINAA0 + 3,
+        DINAA0 + 3, DINAA0 + 3,
+        DINAA0 + 3, DINAA0 + 3
+    };
+
+    if (inv_get_state() < INV_STATE_DMP_OPENED)
+        return INV_ERROR_SM_IMPROPER_STATE;
+
+    if (accuracy)
+        accuracy = INV_16_BIT;
+
+    elements = inv_set_fifo_reference(elements, accuracy, REF_RAW_EXTERNAL, 6);
+
+    if (elements)
+        fifo_obj.data_config[CONFIG_RAW_EXTERNAL] = elements | INV_16_BIT;
+    else
+        fifo_obj.data_config[CONFIG_RAW_EXTERNAL] = 0;
+
+    if (elements & INV_ELEMENT_1) {
+        regs[0] = DINBC2;
+    }
+    if (elements & INV_ELEMENT_2) {
+        regs[1] = DINACA;
+    }
+    if (elements & INV_ELEMENT_3) {
+        regs[2] = DINBC4;
+    }
+    if (elements & INV_ELEMENT_4) {
+        regs[3] = DINBC0;
+    }
+    if (elements & INV_ELEMENT_5) {
+        regs[4] = DINAC8;
+    }
+    if (elements & INV_ELEMENT_6) {
+        regs[5] = DINACC;
+    }
+
+    result = inv_set_mpu_memory(KEY_CFG_EXTERNAL, sizeof(regs), regs);
+    if (result) {
+        LOG_RESULT_LOCATION(result);
+        return result;
+    }
+
+    return inv_set_footer();
+
 }
 
 /**
@@ -1660,7 +1738,7 @@ inv_error_t inv_get_gyro_raw(long *data)
             inv_q30_mult(gyro_raw[1], inv_obj.calmat->gyro_orient[ii*3 + 1]) +
             inv_q30_mult(gyro_raw[2], inv_obj.calmat->gyro_orient[ii*3 + 2]);
         /* Apply scaling. */
-        gyro_scaled[ii] = inv_q30_mult((gyro_scaled[ii] << 16), 
+        gyro_scaled[ii] = inv_q30_mult((gyro_scaled[ii] << 16),
             inv_obj.gyro->sens);
     }
 
@@ -2020,7 +2098,7 @@ inv_error_t inv_set_fifo_rate(unsigned short fifoRate)
     * this is done to handle holding the correct fifoRate across power modes */
     if (fifoRate != 0xffff)
         fifo_obj.fifo_rate = fifoRate;
-    
+
     fifoRate = fifo_obj.fifo_rate;
 
     if (mldl_cfg->inv_mpu_cfg->requested_sensors & INV_DMP_PROCESSOR) {
@@ -2342,8 +2420,8 @@ inv_error_t inv_run_fifo_rate_processes(void)
             MPL_LOGW_IF(result2 > 0,
                 "Calling fifo_process_cb %d/%d, "
                 "priority %d, callback %p, returned %d\n",
-                kk, fifo_rate_obj.num_cb, 
-                fifo_rate_obj.priority[kk], 
+                kk, fifo_rate_obj.num_cb,
+                fifo_rate_obj.priority[kk],
                 fifo_rate_obj.fifo_process_cb[kk], result2);
         }
     }

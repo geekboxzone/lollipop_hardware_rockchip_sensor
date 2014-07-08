@@ -25,6 +25,7 @@ CFLAGS += -DUNICODE -D_UNICODE -DSK_RELEASE
 CFLAGS += -DI2CDEV=\"/dev/mpu\" 
 CFLAGS += -mthumb-interwork -fno-exceptions -ffunction-sections -funwind-tables -fstack-protector -fno-short-enums -fmessage-length=0
 CFLAGS += -I$(MLLITE_DIR)
+CFLAGS += -I$(MLPLATFORM_DIR)/include
 CFLAGS += -I$(MLSDK_ROOT)/mlutils 
 CFLAGS += -I$(MLSDK_ROOT)/mlapps/common
 CFLAGS += $(MLSDK_INCLUDES)

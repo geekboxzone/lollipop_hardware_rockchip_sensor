@@ -6,7 +6,7 @@
 
 /******************************************************************************
  *
- * $Id: mputest.c 6204 2011-10-15 00:38:33Z mcaramello $
+ * $Id: mputest.c 6276 2011-11-09 22:40:46Z mcaramello $
  *
  *****************************************************************************/
 
@@ -68,6 +68,10 @@ extern "C" {
 
 #define VERBOSE_OUT 0
 
+#define X   (0)
+#define Y   (1)
+#define Z   (2)
+
 /*--- Test parameters defaults. See set_test_parameters for more details ---*/
 
 #define DEF_MPU_ADDR             (0x68)        /* I2C address of the mpu     */
@@ -111,7 +115,7 @@ typedef struct {
     int bias_thresh;
     unsigned int tests_per_axis;
     unsigned short accel_samples;
-} tTestSetup;
+} test_setup_t;
 
 /*
     Global variables
@@ -119,7 +123,7 @@ typedef struct {
 static unsigned char dataout[20];
 static unsigned char data_store[ML_INIT_CAL_LEN];
 
-static tTestSetup test_setup = {
+static test_setup_t test_setup = {
     DEF_GYRO_SENS,
     DEF_GYRO_FULLSCALE,
     DEF_PACKET_THRESH,
@@ -200,9 +204,6 @@ void inv_set_test_parameters(unsigned int slave_addr, float sensitivity,
     test_setup.accel_samples = accel_samples;
 }
 
-#define X   (0)
-#define Y   (1)
-#define Z   (2)
 
 /**
  *  @brief  Test the gyroscope sensor.
@@ -240,7 +241,7 @@ void inv_set_test_parameters(unsigned int slave_addr, float sensitivity,
  *                        due to a non-functional gyro or FIFO/register failure.
  *                        (decimal value will be 512).
  */
-int inv_test_gyro(void *mlsl_handle,
+int test_gyro(void *mlsl_handle,
                   short gyro_biases[3], short *temp_avg,
                   uint_fast8_t perform_full_test)
 {
@@ -270,7 +271,7 @@ int inv_test_gyro(void *mlsl_handle,
     }
 
     /* reset the gyro offset values */
-    regs[0] = MPUREG_X_OFFS_USRH;
+    regs[0] = MPUREG_XG_OFFS_USRH;
     result = inv_serial_write(mlsl_handle, mldl_cfg->mpu_chip_info->addr,
                               6, regs);
     if (result) {
@@ -317,22 +318,14 @@ int inv_test_gyro(void *mlsl_handle,
     }
     result = inv_serial_single_write(
                 mlsl_handle, mldl_cfg->mpu_chip_info->addr,
-                MPUREG_DLPF_FS_SYNC, regs[0]);
-    if (result) {
-        LOG_RESULT_LOCATION(result);
-        return (-1);
-    }
-    result = inv_serial_single_write(
-                mlsl_handle, mldl_cfg->mpu_chip_info->addr,
-                MPUREG_INT_CFG, 0x00);
+                MPUREG_CONFIG, regs[0]);
     if (result) {
         LOG_RESULT_LOCATION(result);
         return result;
     }
-    /* we will enable XYZ gyro in FIFO and nothing else */
     result = inv_serial_single_write(
                 mlsl_handle, mldl_cfg->mpu_chip_info->addr,
-                MPUREG_FIFO_EN2, 0x00);
+                MPUREG_INT_ENABLE, 0x00);
     if (result) {
         LOG_RESULT_LOCATION(result);
         return result;
@@ -346,7 +339,7 @@ int inv_test_gyro(void *mlsl_handle,
            Set to Y and Z for 2nd and 3rd iteration */
         result = inv_serial_single_write(
                     mlsl_handle, mldl_cfg->mpu_chip_info->addr,
-                    MPUREG_PWR_MGM, j + 1);
+                    MPUREG_PWR_MGMT_1, j + 1);
         if (result) {
             LOG_RESULT_LOCATION(result);
             return result;
@@ -366,7 +359,7 @@ int inv_test_gyro(void *mlsl_handle,
 
         tmp = test_setup.tests_per_axis;
         while (tmp-- > 0) {
-            const unsigned char fifo_en_reg = MPUREG_FIFO_EN1;
+            const unsigned char fifo_en_reg = MPUREG_FIFO_EN;
             /* enable XYZ gyro in FIFO and nothing else */
             result = inv_serial_single_write(mlsl_handle,
                         mldl_cfg->mpu_chip_info->addr, fifo_en_reg,
@@ -438,7 +431,7 @@ int inv_test_gyro(void *mlsl_handle,
         /* remove gyros from FIFO */
         result = inv_serial_single_write(
                     mlsl_handle, mldl_cfg->mpu_chip_info->addr,
-                    MPUREG_FIFO_EN1, 0x00);
+                    MPUREG_FIFO_EN, 0x00);
         if (result) {
             LOG_RESULT_LOCATION(result);
             return result;
@@ -475,9 +468,9 @@ int inv_test_gyro(void *mlsl_handle,
                  avg[Z] / adj_gyro_sens);
     }
     for (j = 0; j < 3; j++) {
-        if (fabs(avg[j]) > (float)test_setup.bias_thresh) {
+        if (fabs(avg[j]) > test_setup.bias_thresh) {
             MPL_LOGI("%s-Gyro bias (%.0f) exceeded threshold "
-                    "(threshold = %d LSB)\n",
+                    "(threshold = %d)\n",
                     a_name[j], avg[j], test_setup.bias_thresh);
             ret_val |= 1 << (3+j);
         }
@@ -487,8 +480,7 @@ int inv_test_gyro(void *mlsl_handle,
       If any of the RMS noise value returns zero,
       then we might have dead gyro or FIFO/register failure,
       the part is sleeping, or the part is not responsive */
-    for (i = 0,
-            rms[X] = 0.f, rms[Y] = 0.f, rms[Z] = 0.f;
+        for (i = 0, rms[X] = 0.f, rms[Y] = 0.f, rms[Z] = 0.f;
          i < total_count; i++) {
         rms[X] += (x[i] - avg[X]) * (x[i] - avg[X]);
         rms[Y] += (y[i] - avg[Y]) * (y[i] - avg[Y]);
@@ -527,7 +519,7 @@ int inv_test_gyro(void *mlsl_handle,
  *              device, both gyro and accelerometer.
  *  @return 0 on success, a non-zero error code from the serial layer on error.
  */
-static inv_error_t test_get_mpu_id(void *mlsl_handle)
+static inv_error_t get_mpu_unique_id(void *mlsl_handle)
 {
     inv_error_t result;
     unsigned char otp0[8];
@@ -565,9 +557,9 @@ close:
 /**
  *  @brief
  */
-int inv_populate_data_store(unsigned long sensor_mask,
-                            short temp_avg, short gyro_biases[],
-                            short accel_biases[], long accel_sens[])
+int populate_data_store(unsigned long sensor_mask,
+                        short temp_avg, short gyro_biases[],
+                        short accel_biases[], long accel_sens[])
 {
     int ptr = 0;
     int tmp;
@@ -615,13 +607,27 @@ int inv_populate_data_store(unsigned long sensor_mask,
     }
 
     if (sensor_mask & INV_THREE_AXIS_ACCEL) {
+        signed char *mtx =
+            mldl_cfg->pdata_slave[EXT_SLAVE_TYPE_ACCEL]->orientation;
+        short tmp[3];
+        int ii;
+        /* need store the biases in chip frame - that is,
+           inverting the rotation applied in inv_get_accel_data */
+        memcpy(tmp, accel_biases, sizeof(tmp));
+        for (ii = 0; ii < ARRAY_SIZE(accel_biases); ii++) {
+            accel_biases[ii] = tmp[0] * mtx[3 * 0 + ii] +
+                               tmp[1] * mtx[3 * 1 + ii] +
+                               tmp[2] * mtx[3 * 2 + ii];
+        }
+/*
         if (sensor_mask & INV_X_ACCEL) {
-            /* x accel avg */
+            // x accel avg 
             lltmp = (long)accel_biases[0] * 65536L / accel_sens[0];
             if (lltmp < 0)
                 lltmp += 1LL << 32;
             inv_int32_to_big8((uint32_t)lltmp, &data_store[ptr]);
         }
+	*/
         ptr += 4;
         if (sensor_mask & INV_Y_ACCEL) {
             /* y accel avg */
@@ -639,6 +645,8 @@ int inv_populate_data_store(unsigned long sensor_mask,
             inv_int32_to_big8((uint32_t)lltmp, &data_store[ptr]);
         }
         ptr += 4;
+    } else {
+        ptr += 12;
     }
 
     /* add a checksum for data */
@@ -686,7 +694,7 @@ int inv_populate_data_store(unsigned long sensor_mask,
  *
  *  @return 0 on success. A non-zero error code on error.
  */
-int inv_test_accel(void *mlsl_handle, int enable_axes,
+int test_accel(void *mlsl_handle, int enable_axes,
                    short *bias, long gravity,
                    uint_fast8_t perform_full_test)
 {
@@ -815,6 +823,17 @@ static void get_accel_sensitivity(long accel_sens[])
         accel_sens[0] = (long)((1L << 15) / fs);
         accel_sens[1] = (long)((1L << 15) / fs);
         accel_sens[2] = (long)((1L << 15) / fs);
+        if (MPL_PROD_KEY(mldl_cfg->mpu_chip_info->product_id,
+                         mldl_cfg->mpu_chip_info->product_revision) ==
+            MPU_PRODUCT_KEY_B1_E1_5) {
+            accel_sens[2] /= 2;
+        } else {
+            unsigned short trim_corr =
+                (1L << 14) / mldl_cfg->mpu_chip_info->accel_sens_trim;
+            accel_sens[0] /= trim_corr;
+            accel_sens[1] /= trim_corr;
+            accel_sens[2] /= trim_corr;
+        }
     } else {
         /* would be 0, but 1 to avoid divide-by-0 below */
         accel_sens[0] = accel_sens[1] = accel_sens[2] = 1;
@@ -850,7 +869,7 @@ static void get_accel_sensitivity(long accel_sens[])
  *  @param  provide_result
  *              If 1:
  *              Report the final result using a bit-mask like error code as
- *              described in the inv_test_gyro() function.
+ *              described in the test_gyro() function.
  *
  *  @return 0 on success.  A non-zero error code on error.
  *          Propagates the errors from the tests up to the caller.
@@ -873,15 +892,19 @@ int inv_device_test(void *mlsl_handle,
 
     if (sensor_mask & (INV_THREE_AXIS_GYRO & ~INV_DMP_PROCESSOR)) {
         result = inv_set_mpu_sensors(INV_THREE_AXIS_GYRO & ~INV_DMP_PROCESSOR);
-        if (result)
+        if (result) {
+            LOG_RESULT_LOCATION(result);
             return -1;
+        }
         if (saved_state < INV_STATE_DMP_STARTED) {
             result = inv_dmp_start();
-            if (result)
+            if (result) {
+                LOG_RESULT_LOCATION(result);
                 return -1;
+            }
         }
 #ifdef TRACK_IDS
-        result = test_get_mpu_id(mlsl_handle);
+        result = get_mpu_unique_id(mlsl_handle);
         if (result != INV_SUCCESS) {
             MPL_LOGI("Could not read the device's unique ID\n");
             MPL_LOGI("\n");
@@ -894,11 +917,11 @@ int inv_device_test(void *mlsl_handle,
 
         /* adjust the gyro sensitivity according to the gyro_sens_trim value */
         adj_gyro_sens = test_setup.gyro_sens *
-            mldl_cfg->mpu_chip_info->gyro_sens_trim / 131.f;
+            mldl_cfg->mpu_chip_info->gyro_sens_trim / 131.072f;
         test_setup.gyro_fs = (int)(32768.f / adj_gyro_sens);
 
         /* collect gyro and temperature data, test gyro, report result */
-        gyro_test_result = inv_test_gyro(mlsl_handle,
+        gyro_test_result = test_gyro(mlsl_handle,
                                 gyro_biases, &temp_avg, perform_full_test);
         MPL_LOGI("\n");
         if (gyro_test_result == 0) {
@@ -929,9 +952,9 @@ int inv_device_test(void *mlsl_handle,
             /* collect accel data.  if this step is skipped,
                ensure the array still contains zeros. */
             accel_test_result =
-                inv_test_accel(mlsl_handle, sensor_mask >> 4,
-                               accel_biases, accel_sens[Z],
-                               perform_full_test);
+                test_accel(mlsl_handle, sensor_mask >> 4,
+                           accel_biases, accel_sens[Z],
+                           perform_full_test);
             if (accel_test_result)
                 goto accel_test_failed;
 
@@ -942,8 +965,10 @@ int inv_device_test(void *mlsl_handle,
         }
     }
 
-    result = inv_populate_data_store(sensor_mask,
-                                     temp_avg, gyro_biases,
+	
+	ALOGE("in %s: accel_bias is %d %d %d", __func__, accel_biases[0],
+			accel_biases[1], accel_biases[2]);
+    result = populate_data_store(sensor_mask, temp_avg, gyro_biases,
                                      accel_biases, accel_sens);
     if (result)
         return -1;
@@ -951,6 +976,7 @@ int inv_device_test(void *mlsl_handle,
     if (result) {
         MPL_LOGI("Error : cannot write calibration on file - error %d\n",
             result);
+        LOG_RESULT_LOCATION(result);
         return -1;
     }
 
@@ -959,13 +985,17 @@ accel_test_failed:
     /* restore the setting had at the beginning */
     mldl_cfg->inv_mpu_state->status |= MPU_GYRO_NEEDS_CONFIG;
     result = inv_set_mpu_sensors(saved_sensor_mask);
-    if (result)
+    if (result) {
+        LOG_RESULT_LOCATION(result);
         return -1;
+    }
     /* turn off only if it was off when the function was called */
     if (saved_state < INV_STATE_DMP_STARTED) {
         result = inv_dmp_stop();
-        if (result)
+        if (result) {
+            LOG_RESULT_LOCATION(result);
             return -1;
+        }
     }
 
     if (gyro_test_result)
@@ -983,4 +1013,5 @@ accel_test_failed:
 /**
  *  @}
  */
+
 

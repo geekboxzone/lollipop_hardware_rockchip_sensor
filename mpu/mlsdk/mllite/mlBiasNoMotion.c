@@ -60,6 +60,24 @@ inv_error_t inv_set_motion_callback(void (*func) (unsigned short motion_state))
     return INV_SUCCESS;
 }
 
+/** Turns on the feature to compute gyro bias from No Motion */
+inv_error_t inv_turn_on_bias_from_no_motion()
+{
+    inv_error_t result;
+    unsigned char regs[3] = { 0x0d, DINA35, 0x5d };
+    result = inv_set_mpu_memory(KEY_CFG_MOTION_BIAS, 3, regs);
+    return result;
+}
+
+/** Turns off the feature to compute gyro bias from No Motion
+*/
+inv_error_t inv_turn_off_bias_from_no_motion()
+{
+    inv_error_t result;
+    unsigned char regs[3] = { DINA90 + 8, DINA90 + 8, DINA90 + 8 };
+    result = inv_set_mpu_memory(KEY_CFG_MOTION_BIAS, 3, regs);
+    return result;
+}
 
 inv_error_t inv_update_bias(void)
 {
@@ -236,7 +254,6 @@ inv_error_t MLPollMotionStatus(struct inv_obj_t * inv_obj)
     inv_obj->lite_fusion->poll_no_motion_time = currentTime;
 
     if (inv_get_gyro_present()) {
-        static long repeatBiasUpdateTime = 0;
 
         result = inv_get_mpu_memory(KEY_D_1_98, 2, regs);
         if (result) {
@@ -247,91 +264,45 @@ inv_error_t MLPollMotionStatus(struct inv_obj_t * inv_obj)
         motionFlag = (unsigned short)regs[0] * 256 + (unsigned short)regs[1];
 
         MPL_LOGV("motionFlag from RAM : 0x%04X\n", motionFlag);
-        if (motionFlag == inv_obj->lite_fusion->motion_duration) {
-            if (inv_obj->lite_fusion->motion_state == INV_MOTION) {
-                result = inv_update_bias();
-                /* Make sure we were able to read the gyro bias before
-                   changing to a motion state. */
-                if (result == INV_WARNING_MOTION_RACE) 
-                    return INV_SUCCESS;
+        if (motionFlag > 0) {
+            unsigned char biasReg[12];
+            long biasTmp2[3], biasTmp[3];
+            int i;
 
-                if (result == INV_WARNING_GYRO_MAG) {
-                    //Need to reset Motion Flag and time counter
-                    regs[0] = 0;
-                    regs[1] = 0;
-                    regs[2] = 0;
-                    regs[3] = 0;
-                    result = inv_set_mpu_memory(KEY_D_1_98, 2, regs);
-                    if (result) {
-                        LOG_RESULT_LOCATION(result);
-                        return result;
-                    }
-                    result = inv_set_mpu_memory(KEY_D_1_100, 4, regs);
-                    if (result) {
-                        LOG_RESULT_LOCATION(result);
-                        return result;
-                    }
-                    return INV_SUCCESS;
+            if (inv_obj->lite_fusion->last_motion != motionFlag) {
+                result = inv_get_mpu_memory(KEY_D_2_96, 12, biasReg);
+
+                for (i = 0; i < 3; i++) {
+                    biasTmp2[i] = inv_big8_to_int32(&biasReg[i * 4]);
                 }
-
-                repeatBiasUpdateTime = inv_get_tick_count();
-
-                regs[0] = DINAD8 + 1;
-                regs[1] = DINA0C;
-                regs[2] = DINAD8 + 2;
-                result = inv_set_mpu_memory(KEY_CFG_18, 3, regs);
-                if (result) {
-                    LOG_RESULT_LOCATION(result);
-                    return result;
+                /* Rotate bias vector by the transpose of the orientation
+                   matrix */
+                for (i = 0; i < 3; ++i) {
+                    biasTmp[i] =
+                        inv_q30_mult(biasTmp2[0],
+                                     inv_obj->calmat->gyro_orient[i]) +
+                        inv_q30_mult(biasTmp2[1],
+                                     inv_obj->calmat->gyro_orient[i + 3]) +
+                        inv_q30_mult(biasTmp2[2], inv_obj->calmat->gyro_orient[i + 6]);
                 }
-
-                regs[0] = 0;
-                regs[1] = 5;
-                result = inv_set_mpu_memory(KEY_D_1_106, 2, regs);
-                if (result) {
-                    LOG_RESULT_LOCATION(result);
-                    return result;
-                }
-
-                /* trigger no motion callback */
-                inv_set_motion_state(INV_NO_MOTION);
+                inv_obj->gyro->bias[0] = inv_q30_mult(biasTmp[0], 1501974482L);
+                inv_obj->gyro->bias[1] = inv_q30_mult(biasTmp[1], 1501974482L);
+                inv_obj->gyro->bias[2] = inv_q30_mult(biasTmp[2], 1501974482L);
+                MPL_LOGV("Bias %f %f %f\n",
+                         (float)inv_obj->gyro->bias[0] / (1L << 16),
+                         (float)inv_obj->gyro->bias[1] / (1L << 16),
+                         (float)inv_obj->gyro->bias[2] / (1L << 16));
             }
+            inv_set_motion_state(INV_NO_MOTION);
+            inv_obj->adv_fusion->gyro_bias_err = 2*65536L;
+        } else {
+            /* We are in a motion state */
+            inv_set_motion_state(INV_MOTION);
         }
-        if (motionFlag == 5) {
-            if (inv_obj->lite_fusion->motion_state == INV_NO_MOTION) {
-                regs[0] = DINAD8 + 2;
-                regs[1] = DINA0C;
-                regs[2] = DINAD8 + 1;
-                result = inv_set_mpu_memory(KEY_CFG_18, 3, regs);
-                if (result) {
-                    LOG_RESULT_LOCATION(result);
-                    return result;
-                }
+        inv_obj->lite_fusion->last_motion = motionFlag;
 
-                regs[0] =
-                    (unsigned char)((inv_obj->lite_fusion->motion_duration >> 8) & 0xff);
-                regs[1] = (unsigned char)(inv_obj->lite_fusion->motion_duration & 0xff);
-                result = inv_set_mpu_memory(KEY_D_1_106, 2, regs);
-                if (result) {
-                    LOG_RESULT_LOCATION(result);
-                    return result;
-                }
-
-                /* trigger no motion callback */
-                inv_set_motion_state(INV_MOTION);
-            }
-        }
-        if (inv_obj->lite_fusion->motion_state == INV_NO_MOTION) {
-            if ((inv_get_tick_count() - repeatBiasUpdateTime) > 4000) {
-                result = inv_update_bias();
-                /* Make sure we were able to read the gyro bias before
-                   changing to a motion state. */
-                if ( result == INV_WARNING_MOTION_RACE )
-                    return INV_SUCCESS;
-                repeatBiasUpdateTime = inv_get_tick_count();
-            }
-        }
     }
+
     return INV_SUCCESS;
 }
 
@@ -358,6 +329,11 @@ inv_error_t inv_enable_bias_no_motion(void)
         return result;
     }
 
+    result = inv_turn_on_bias_from_no_motion();
+    if (result) {
+        LOG_RESULT_LOCATION(result);
+        return result;
+    }
 
     MPL_LOGV("Bias no Motion enabled.\n");
 
@@ -386,6 +362,11 @@ inv_error_t inv_disable_bias_no_motion(void)
         return result;
     }
 
+    result = inv_turn_off_bias_from_no_motion();
+    if (result) {
+        LOG_RESULT_LOCATION(result);
+        return result;
+    }
 
     MPL_LOGV("Bias no Motion disabled.\n");
 

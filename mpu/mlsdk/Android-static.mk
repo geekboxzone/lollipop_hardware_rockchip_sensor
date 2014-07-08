@@ -12,15 +12,18 @@ endif
 include Android-common.mk
 
 #############################################################################
-## target
+## targets
+
 LIB_FOLDERS  = platform/linux
 LIB_FOLDERS += mllite/mpl/$(TARGET)
 LIB_FOLDERS += mldmp/mpl/$(TARGET)
 LIB_FOLDERS += external/aichi/mpl/$(TARGET)
 LIB_FOLDERS += external/akmd/mpl/$(TARGET)
+LIB_FOLDERS += external/akm8963/mpl/$(TARGET)
+LIB_FOLDERS += external/memsic/mpl/$(TARGET)
 
 APP_FOLDERS += mlapps/DemoAppPoll/PollUnix
-ifeq ($(DEVICE),MPU3050)
+ifeq ($(MPU_NAME),MPU3050)
 	APP_FOLDERS += mltools/driver_selftest
 endif
 
@@ -39,9 +42,9 @@ define maker_libs
 	echo "MLPLATFORM_LIB_NAME = $(MLPLATFORM_LIB_NAME)"
 	echo "MLLITE_LIB_NAME     = $(MLLITE_LIB_NAME)"
 	echo "AICHI_LIB_NAME      = $(AICHI_LIB_NAME)"
-	echo "AKM_LIB_NAME        = $(AKM_LIB_NAME)"
+	echo "MEMSIC_LIB_NAME     = $(MEMSIC_LIB_NAME)"
 	echo "MPL_LIB_NAME        = $(MPL_LIB_NAME)"
-	
+
 	$(call echo_in_colors, "\n<making '$(1)' in folder 'platform/linux'>\n"); \
 	make MLSDK_ROOT=$(MLSDK_ROOT) MLPLATFORM_LIB_NAME=$(MLPLATFORM_LIB_NAME) ANDROID_ROOT=$(ANDROID_ROOT) KERNEL_ROOT=$(KERNEL_ROOT) PRODUCT=$(PRODUCT) -C platform/linux -f Android-static.mk $@ $(DUMP)
 
@@ -56,6 +59,16 @@ define maker_libs
 	if test -f external/akmd/mpl/$(TARGET)/static.mk; then \
 		$(call echo_in_colors, "\n<making '$(1)' in folder 'external/akmd/mpl/$(TARGET)'>\n"); \
 		make MLSDK_ROOT=$(MLSDK_ROOT) AKM_LIB_NAME=$(AKM_LIB_NAME) ANDROID_ROOT=$(ANDROID_ROOT) KERNEL_ROOT=$(KERNEL_ROOT) PRODUCT=$(PRODUCT) -C external/akmd/mpl/$(TARGET) -f static.mk $@ $(DUMP); \
+	fi
+
+	if test -f external/akm8963/mpl/$(TARGET)/static.mk; then \
+		$(call echo_in_colors, "\n<making '$(1)' in folder 'external/akm8963/mpl/$(TARGET)'>\n"); \
+		make MLSDK_ROOT=$(MLSDK_ROOT) AKM8963_LIB_NAME=$(AKM8963_LIB_NAME) ANDROID_ROOT=$(ANDROID_ROOT) KERNEL_ROOT=$(KERNEL_ROOT) PRODUCT=$(PRODUCT) -C external/akm8963/mpl/$(TARGET) -f static.mk $@ $(DUMP); \
+	fi
+
+	if test -f external/memsic/mpl/$(TARGET)/static.mk; then \
+		$(call echo_in_colors, "\n<making '$(1)' in folder 'external/memsic/mpl/$(TARGET)'>\n"); \
+		make MLSDK_ROOT=$(MLSDK_ROOT) MEMSIC_LIB_NAME=$(MEMSIC_LIB_NAME) ANDROID_ROOT=$(ANDROID_ROOT) KERNEL_ROOT=$(KERNEL_ROOT) PRODUCT=$(PRODUCT) -C external/memsic/mpl/$(TARGET) -f static.mk $@ $(DUMP); \
 	fi
 
 	if test -f mldmp/mpl/$(TARGET)/Android-shared.mk; then \

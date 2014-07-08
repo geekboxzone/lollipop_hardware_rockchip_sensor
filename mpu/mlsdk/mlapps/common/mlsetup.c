@@ -5,7 +5,7 @@
  */
 /******************************************************************************
  *
- * $Id: mlsetup.c 6132 2011-10-01 03:17:27Z mcaramello $
+ * $Id: mlsetup.c 6241 2011-10-28 20:54:58Z mcaramello $
  *
  *****************************************************************************/
 #undef MPL_LOG_NDEBUG
@@ -46,6 +46,7 @@
 #define CONFIG_MPU_SENSORS_ADXL34X       y   // AD 345 or 346 accelerometer
 #define CONFIG_MPU_SENSORS_MMA8450       y   // Freescale MMA8450 accelerometer
 #define CONFIG_MPU_SENSORS_MMA845X       y   // Freescale MMA845X accelerometer
+#define CONFIG_MPU_SENSORS_MPU6050_ACCEL y   // Invensense MPU6050 built-in accelerometer
 
 #define CONFIG_MPU_SENSORS_AK8975        y   // AKM compass
 #define CONFIG_MPU_SENSORS_AMI30X        y   // AICHI AMI304/305 compass
@@ -107,7 +108,7 @@ typedef void tSetupFuncPressure(void);
 #endif
 
 /*********************************************************************
-              Dragon - PLATFORM_ID_DRAGON_PROTOTYPE
+              Dragon - PLATFORM_ID_MPU9150_PROTOTYPE
 *********************************************************************/
 /**
  * @internal
@@ -318,7 +319,7 @@ static inv_error_t SetupAccelSTLIS331Calibration(unsigned short platformId)
         break;
     case PLATFORM_ID_DONGLE:
     case PLATFORM_ID_MPU6050_PROTOTYPE:
-    case PLATFORM_ID_DRAGON_PROTOTYPE:
+    case PLATFORM_ID_MPU9150_PROTOTYPE:
     case PLATFORM_ID_MPU6050_MSB:
     case PLATFORM_ID_MPU6050_USB_DONGLE:
     case PLATFORM_ID_MSB_V2:
@@ -361,7 +362,7 @@ static inv_error_t SetupAccelSTLIS3DHCalibration(unsigned short platformId)
     case PLATFORM_ID_ST_6AXIS:
     case PLATFORM_ID_DONGLE:
     case PLATFORM_ID_MPU6050_PROTOTYPE:
-    case PLATFORM_ID_DRAGON_PROTOTYPE:
+    case PLATFORM_ID_MPU9150_PROTOTYPE:
     case PLATFORM_ID_MPU6050_MSB:
     case PLATFORM_ID_MPU6050_USB_DONGLE:
     default:
@@ -398,7 +399,7 @@ static inv_error_t SetupAccelKionixKXSD9Calibration(unsigned short platformId)
     case PLATFORM_ID_ST_6AXIS:
     case PLATFORM_ID_DONGLE:
     case PLATFORM_ID_MPU6050_PROTOTYPE:
-    case PLATFORM_ID_DRAGON_PROTOTYPE:
+    case PLATFORM_ID_MPU9150_PROTOTYPE:
     case PLATFORM_ID_MPU6050_MSB:
     case PLATFORM_ID_MPU6050_USB_DONGLE:
     case PLATFORM_ID_MSB_V2:
@@ -448,7 +449,7 @@ static inv_error_t SetupAccelKionixKXTF9Calibration(unsigned short platformId)
         break;
     case PLATFORM_ID_ST_6AXIS:
     case PLATFORM_ID_MPU6050_PROTOTYPE:
-    case PLATFORM_ID_DRAGON_PROTOTYPE:
+    case PLATFORM_ID_MPU9150_PROTOTYPE:
     case PLATFORM_ID_MPU6050_MSB:
     case PLATFORM_ID_MPU6050_USB_DONGLE:
     default:
@@ -488,7 +489,7 @@ static inv_error_t SetupAccelLSM303Calibration(unsigned short platformId)
     case PLATFORM_ID_DONGLE:
     case PLATFORM_ID_ST_6AXIS:
     case PLATFORM_ID_MPU6050_PROTOTYPE:
-    case PLATFORM_ID_DRAGON_PROTOTYPE:
+    case PLATFORM_ID_MPU9150_PROTOTYPE:
     case PLATFORM_ID_MPU6050_MSB:
     case PLATFORM_ID_MPU6050_USB_DONGLE:
     case PLATFORM_ID_MSB_V2_MPU6050:
@@ -529,7 +530,7 @@ static inv_error_t SetupAccelBMA150Calibration(unsigned short platformId)
 #endif
     case PLATFORM_ID_ST_6AXIS:
     case PLATFORM_ID_MPU6050_PROTOTYPE:
-    case PLATFORM_ID_DRAGON_PROTOTYPE:
+    case PLATFORM_ID_MPU9150_PROTOTYPE:
     case PLATFORM_ID_MPU6050_MSB:
     case PLATFORM_ID_MPU6050_USB_DONGLE:
     case PLATFORM_ID_MSB_V2:
@@ -568,7 +569,7 @@ static inv_error_t SetupAccelBMA222Calibration(unsigned short platformId)
     case PLATFORM_ID_DONGLE:
     case PLATFORM_ID_ST_6AXIS:
     case PLATFORM_ID_MPU6050_PROTOTYPE:
-    case PLATFORM_ID_DRAGON_PROTOTYPE:
+    case PLATFORM_ID_MPU9150_PROTOTYPE:
     case PLATFORM_ID_MPU6050_MSB:
     case PLATFORM_ID_MPU6050_USB_DONGLE:
     case PLATFORM_ID_MSB_V2:
@@ -607,7 +608,7 @@ static inv_error_t SetupAccelBMA250Calibration(unsigned short platformId)
     case PLATFORM_ID_DONGLE:
     case PLATFORM_ID_ST_6AXIS:
     case PLATFORM_ID_MPU6050_PROTOTYPE:
-    case PLATFORM_ID_DRAGON_PROTOTYPE:
+    case PLATFORM_ID_MPU9150_PROTOTYPE:
     case PLATFORM_ID_MPU6050_MSB:
     case PLATFORM_ID_MPU6050_USB_DONGLE:
 
@@ -645,7 +646,7 @@ static inv_error_t SetupAccelADXL34XCalibration(unsigned short platformId)
     case PLATFORM_ID_DONGLE:
     case PLATFORM_ID_ST_6AXIS:
     case PLATFORM_ID_MPU6050_PROTOTYPE:
-    case PLATFORM_ID_DRAGON_PROTOTYPE:
+    case PLATFORM_ID_MPU9150_PROTOTYPE:
     case PLATFORM_ID_MPU6050_MSB:
     case PLATFORM_ID_MPU6050_USB_DONGLE:
     case PLATFORM_ID_MSB_V2:
@@ -685,7 +686,7 @@ static inv_error_t SetupAccelMMA8450Calibration(unsigned short platformId)
     case PLATFORM_ID_DONGLE:
     case PLATFORM_ID_ST_6AXIS:
     case PLATFORM_ID_MPU6050_PROTOTYPE:
-    case PLATFORM_ID_DRAGON_PROTOTYPE:
+    case PLATFORM_ID_MPU9150_PROTOTYPE:
     case PLATFORM_ID_MPU6050_MSB:
     case PLATFORM_ID_MPU6050_USB_DONGLE:
     case PLATFORM_ID_MSB_V2:
@@ -725,7 +726,7 @@ static inv_error_t SetupAccelMMA845XCalibration(unsigned short platformId)
     case PLATFORM_ID_DONGLE:
     case PLATFORM_ID_ST_6AXIS:
     case PLATFORM_ID_MPU6050_PROTOTYPE:
-    case PLATFORM_ID_DRAGON_PROTOTYPE:
+    case PLATFORM_ID_MPU9150_PROTOTYPE:
     case PLATFORM_ID_MPU6050_MSB:
     case PLATFORM_ID_MPU6050_USB_DONGLE:
     case PLATFORM_ID_MSB_V2:
@@ -773,11 +774,11 @@ static inv_error_t SetupAccelMPU6050Calibration(unsigned short platformId)
         break;
     case PLATFORM_ID_DONGLE:
     case PLATFORM_ID_MPU6050_USB_DONGLE:
-	case PLATFORM_ID_DRAGON_USB_DONGLE:
+	case PLATFORM_ID_MPU9150_USB_DONGLE:
         position = 1;
         break;
     case PLATFORM_ID_MPU6050_PROTOTYPE:
-    case PLATFORM_ID_DRAGON_PROTOTYPE:
+    case PLATFORM_ID_MPU9150_PROTOTYPE:
     case PLATFORM_ID_ST_6AXIS:
     case PLATFORM_ID_MSB_V2:
     case PLATFORM_ID_MSB_V2_MPU6050:
@@ -792,6 +793,7 @@ static inv_error_t SetupAccelMPU6050Calibration(unsigned short platformId)
     SetupOrientation(position, g_pdata_slave_accel.orientation);
     /* Interrupt */
 #ifndef LINUX
+    g_slave_accel = *mpu6050_get_slave_descr();
 #endif
     g_pdata_slave_accel.address         = 0x68;
     return result;
@@ -819,12 +821,12 @@ static inv_error_t SetupCompassAKM8975Calibration(unsigned short platformId)
         position = 4;
         break;
 #endif
-    case PLATFORM_ID_DRAGON_PROTOTYPE:
+    case PLATFORM_ID_MPU9150_PROTOTYPE:
         position = 7;
         break;
     case PLATFORM_ID_MSB_V2:
     case PLATFORM_ID_MSB_V2_MPU6050:
-    case PLATFORM_ID_DRAGON_USB_DONGLE:
+    case PLATFORM_ID_MPU9150_USB_DONGLE:
     case PLATFORM_ID_MSB_EVB:
         position = 5;
         break;
@@ -867,7 +869,7 @@ static inv_error_t SetupCompassMMCCalibration(unsigned short platformId)
     case PLATFORM_ID_DONGLE:
     case PLATFORM_ID_ST_6AXIS:
     case PLATFORM_ID_MPU6050_PROTOTYPE:
-    case PLATFORM_ID_DRAGON_PROTOTYPE:
+    case PLATFORM_ID_MPU9150_PROTOTYPE:
     case PLATFORM_ID_MPU6050_MSB:
     case PLATFORM_ID_MPU6050_USB_DONGLE:
     case PLATFORM_ID_MSB_V2:
@@ -906,7 +908,7 @@ static inv_error_t SetupCompassAMI304Calibration(unsigned short platformId)
     case PLATFORM_ID_DONGLE:
     case PLATFORM_ID_ST_6AXIS:
     case PLATFORM_ID_MPU6050_PROTOTYPE:
-    case PLATFORM_ID_DRAGON_PROTOTYPE:
+    case PLATFORM_ID_MPU9150_PROTOTYPE:
     case PLATFORM_ID_MPU6050_MSB:
     case PLATFORM_ID_MPU6050_USB_DONGLE:
     case PLATFORM_ID_MSB_V2:
@@ -949,7 +951,7 @@ static inv_error_t SetupCompassAMI306Calibration(unsigned short platformId)
     case PLATFORM_ID_DONGLE:
     case PLATFORM_ID_ST_6AXIS:
     case PLATFORM_ID_MPU6050_PROTOTYPE:
-    case PLATFORM_ID_DRAGON_PROTOTYPE:
+    case PLATFORM_ID_MPU9150_PROTOTYPE:
     case PLATFORM_ID_MPU6050_MSB:
     case PLATFORM_ID_MPU6050_USB_DONGLE:
     default:
@@ -992,9 +994,10 @@ static inv_error_t SetupCompassHMC5883Calibration(unsigned short platformId)
     case PLATFORM_ID_MSB_V2_MPU6050:
     case PLATFORM_ID_ST_6AXIS:
     case PLATFORM_ID_MPU6050_PROTOTYPE:
-    case PLATFORM_ID_DRAGON_PROTOTYPE:
+    case PLATFORM_ID_MPU9150_PROTOTYPE:
     case PLATFORM_ID_MPU6050_MSB:
     case PLATFORM_ID_MPU6050_USB_DONGLE:
+
     default:
         MPL_LOGE("Unsupported platform %d\n", platformId);
         LOG_RESULT_LOCATION(INV_ERROR_FEATURE_NOT_IMPLEMENTED);
@@ -1031,7 +1034,7 @@ static inv_error_t SetupCompassLSM303DLHCalibration(unsigned short platformId)
     case PLATFORM_ID_DONGLE:
     case PLATFORM_ID_ST_6AXIS:
     case PLATFORM_ID_MPU6050_PROTOTYPE:
-    case PLATFORM_ID_DRAGON_PROTOTYPE:
+    case PLATFORM_ID_MPU9150_PROTOTYPE:
     case PLATFORM_ID_MPU6050_MSB:
     case PLATFORM_ID_MPU6050_USB_DONGLE:
 
@@ -1071,7 +1074,7 @@ static inv_error_t SetupCompassLSM303DLMCalibration(unsigned short platformId)
     case PLATFORM_ID_DONGLE:
     case PLATFORM_ID_ST_6AXIS:
     case PLATFORM_ID_MPU6050_PROTOTYPE:
-    case PLATFORM_ID_DRAGON_PROTOTYPE:
+    case PLATFORM_ID_MPU9150_PROTOTYPE:
     case PLATFORM_ID_MPU6050_MSB:
     case PLATFORM_ID_MPU6050_USB_DONGLE:
     case PLATFORM_ID_MSB_V2_MPU6050:
@@ -1110,7 +1113,7 @@ static inv_error_t SetupCompassYAS530Calibration(unsigned short platformId)
     case PLATFORM_ID_DONGLE:
     case PLATFORM_ID_ST_6AXIS:
     case PLATFORM_ID_MPU6050_PROTOTYPE:
-    case PLATFORM_ID_DRAGON_PROTOTYPE:
+    case PLATFORM_ID_MPU9150_PROTOTYPE:
     case PLATFORM_ID_MPU6050_MSB:
     case PLATFORM_ID_MPU6050_USB_DONGLE:
     default:
@@ -1146,7 +1149,7 @@ static inv_error_t SetupCompassYAS529Calibration(unsigned short platformId)
     case PLATFORM_ID_DONGLE:
     case PLATFORM_ID_ST_6AXIS:
     case PLATFORM_ID_MPU6050_PROTOTYPE:
-    case PLATFORM_ID_DRAGON_PROTOTYPE:
+    case PLATFORM_ID_MPU9150_PROTOTYPE:
     case PLATFORM_ID_MPU6050_MSB:
     case PLATFORM_ID_MPU6050_USB_DONGLE:
     case PLATFORM_ID_MSB_V2:
@@ -1185,7 +1188,7 @@ static inv_error_t SetupCompassHSCDTD002BCalibration(unsigned short platformId)
     case PLATFORM_ID_DONGLE:
     case PLATFORM_ID_ST_6AXIS:
     case PLATFORM_ID_MPU6050_PROTOTYPE:
-    case PLATFORM_ID_DRAGON_PROTOTYPE:
+    case PLATFORM_ID_MPU9150_PROTOTYPE:
     case PLATFORM_ID_MPU6050_MSB:
     case PLATFORM_ID_MPU6050_USB_DONGLE:
     case PLATFORM_ID_MSB_V2:
@@ -1223,7 +1226,7 @@ static inv_error_t SetupCompassHSCDTD004ACalibration(unsigned short platformId)
     case PLATFORM_ID_DONGLE:
     case PLATFORM_ID_ST_6AXIS:
     case PLATFORM_ID_MPU6050_PROTOTYPE:
-    case PLATFORM_ID_DRAGON_PROTOTYPE:
+    case PLATFORM_ID_MPU9150_PROTOTYPE:
     case PLATFORM_ID_MPU6050_MSB:
     case PLATFORM_ID_MPU6050_USB_DONGLE:
     case PLATFORM_ID_MSB_V2:
@@ -1395,7 +1398,7 @@ inv_error_t SetupCompassCalibration(unsigned short platformId,
         platformId == PLATFORM_ID_MPU6050_MSB        ||
         platformId == PLATFORM_ID_MPU6050_USB_DONGLE ||
         platformId == PLATFORM_ID_MPU6050_PROTOTYPE  ||
-        platformId == PLATFORM_ID_DRAGON_PROTOTYPE) {
+        platformId == PLATFORM_ID_MPU9150_PROTOTYPE) {
         switch (compassId) {
         case ID_INVALID:
             g_pdata_slave_compass.bus = EXT_SLAVE_BUS_INVALID;
@@ -1474,11 +1477,11 @@ static inv_error_t SetupGyroCalibration(unsigned short platformId)
     case PLATFORM_ID_MPU6050_USB_DONGLE:
         position = 1;
         break;
-	case PLATFORM_ID_DRAGON_USB_DONGLE:
+	case PLATFORM_ID_MPU9150_USB_DONGLE:
         position = 3;
         break;
     case PLATFORM_ID_MPU6050_PROTOTYPE:
-    case PLATFORM_ID_DRAGON_PROTOTYPE:
+    case PLATFORM_ID_MPU9150_PROTOTYPE:
     case PLATFORM_ID_ST_6AXIS:
     case PLATFORM_ID_MSB_V2:
     case PLATFORM_ID_MSB_V2_MPU6050:

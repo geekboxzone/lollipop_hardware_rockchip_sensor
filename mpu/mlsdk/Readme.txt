@@ -40,7 +40,15 @@ See the top-level Makefile for details:
 
 Example on how to run the build processes:
 
-MAKE_CMD="make VERBOSE=0 TARGET=android CROSS=/Android/beagle-eclair/prebuilt/linux-x86/toolchain/arm-eabi-4.4.0/bin/arm-eabi- ANDROID_ROOT=/Android/beagle-eclair KERNEL_ROOT=/Android/kernel PRODUCT=beagleboard DEVICE=MPU3050 MPL_LIB_NAME=mplmpu 
+MAKE_CMD="make \
+    VERBOSE=0 \
+    TARGET=android \
+    CROSS=/Android/beagle-eclair/prebuilt/linux-x86/toolchain/arm-eabi-4.4.0/bin/arm-eabi- \
+    ANDROID_ROOT=/Android/beagle-eclair \
+    KERNEL_ROOT=/Android/kernel \
+    PRODUCT=beagleboard \
+    DEVICE=MPU3050 \
+    MPL_LIB_NAME=mplmpu \
 "
 
 $MAKE_CMD -f Android-static.mk

@@ -35,7 +35,7 @@
 #include <time.h>
 
 #include "mpu.h"
-#include "mpu3050.h"
+#include "mpu6050b1.h"
 
 #include "mlsl.h"
 #include "mlos.h"

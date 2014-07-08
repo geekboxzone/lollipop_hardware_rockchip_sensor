@@ -6,17 +6,17 @@
  
 /******************************************************************************
  *
- * $Id: polldmp.c 6132 2011-10-01 03:17:27Z mcaramello $
+ * $Id: polldmp.c 6276 2011-11-09 22:40:46Z mcaramello $
  * 
  *****************************************************************************/
- 
+
 #include <stdio.h>
 #include <time.h>
 #include <sys/select.h>
 #include <unistd.h>
 #include <string.h>
 
-#include "mltypes.h" 
+#include "mltypes.h"
 #include "ml.h"
 #include "slave.h"
 #include "compass.h"
@@ -36,6 +36,7 @@
 
 #include "inv_external_slave_ami306.h"
 #include "inv_external_slave_akm8975.h"
+#include "inv_external_slave_mmc3280.h"
 
 #include "ml_mputest.h"
 #include "mputest.c"
@@ -46,9 +47,12 @@
 
 #define DEBUG_OUT 0
 
-float quat[4] = {1, 0, 0, 0};
-    
-unsigned int flag = 0x02;
+#define TEST_RAW_ACCEL_GYRO   0
+#define TEST_COMPASS_ACCURACY  1
+
+float quat[4] = {1.f, 0.f, 0.f, 0.f};
+
+unsigned int flag = 0x82;
 
 /* Motion/no motion callback function */
 void onMotion(unsigned short motionType)
@@ -84,24 +88,30 @@ void processedData(void)
 void dumpData(void)
 {
     if (flag & 0x20) {
-        float data[9];
-        long fixedData[12];
-		int acurry;
+        float data[6];
+        long fixedData[6];
         int ii;
+	int accuracy;
 
+#if TEST_COMPASS_ACCURACY
+	float magnetic[3];
+	CALL_N_CHECK(inv_get_compass_data(fixedData));
+	CALL_N_CHECK(inv_get_compass_accuracy(&accuracy));
+	
+	printf("Magnetic:  %ld  %ld  %ld : accuracy is %d\n", fixedData[0], fixedData[1], fixedData[2], accuracy);
+//	printf("Magnetic:  %12.4f %12.4f %12.4f : accuracy is %d\n", magnetic[0], magnetic[1], magnetic[2], accuracy);
+
+#endif
+	
+#if TEST_RAW_ACCEL_GYRO   
         CALL_N_CHECK( inv_get_accel(fixedData) );
         CALL_N_CHECK( inv_get_gyro(&fixedData[3]) );
         for (ii = 0; ii < 6; ii++) {
             data[ii] = fixedData[ii] / 65536.0f;
         }
-
-		inv_get_float_array(INV_MAG_RAW_DATA, &fixedData[6]);
-		inv_get_float_array(INV_MAGNETOMETER, &fixedData[9]);		
-		inv_get_compass_accuracy(&acurry);
-        MPL_LOGI("A: %8.4f %8.4f %8.4f G: %8.4f %8.4f %8.4f C:  %8.4f %8.4f %8.4f (Accur:%d )\n",
-                 data[0], data[1], data[2], data[3], data[4], data[5],data[6], data[7], data[8],acurry);
-	
-		MPL_LOGI("A: %8.4f %8.4f %8.4f \n",data[9], data[10], data[11]);		
+        printf("A: %12.4f %12.4f %12.4f G: %12.4f %12.4f %12.4f \n",
+                 data[0], data[1], data[2], data[3], data[4], data[5]);
+#endif
     }
 }
 
@@ -124,10 +134,9 @@ int main(int argc, char *argv[])
                            //"/dev/pressureirq", /* INTSRC_AUX3 */
     };
     int handles[ARRAY_SIZE(ints)];
-    struct mldl_cfg *mldl_cfg;
 
     CALL_N_CHECK( inv_get_version(&verStr) );
-    printf("1 %s\n", verStr);
+    printf("%s\n", verStr);
 
     if(INV_SUCCESS == MenuHwChoice(&platformId, &accelId, &compassId)) {
         CALL_CHECK_N_RETURN_ERROR(SetupPlatform(platformId,
@@ -138,54 +147,52 @@ int main(int argc, char *argv[])
     
     IntOpen(ints, handles, ARRAY_SIZE(ints));
     if (handles[0] < 0) {
-        MPL_LOGE("IntOpen failed\n");
+        printf("IntOpen failed\n");
         interror = INV_ERROR;
     } else {
         interror = INV_SUCCESS;
     }
-	
 
     CALL_CHECK_N_RETURN_ERROR( inv_dmp_open() );
-	
     CALL_CHECK_N_RETURN_ERROR(inv_set_mpu_sensors(INV_NINE_AXIS));
-
 
     /***********************/
     /* advanced algorithms */
     /***********************/
-    mldl_cfg = inv_get_dl_config();
-  
     /* The Aichi and AKM libraries are only built against the
      * android tool chain */
     CALL_CHECK_N_RETURN_ERROR(inv_enable_bias_no_motion());
     CALL_CHECK_N_RETURN_ERROR(inv_enable_bias_from_gravity(true));
     CALL_CHECK_N_RETURN_ERROR(inv_enable_bias_from_LPF(true));
     CALL_CHECK_N_RETURN_ERROR(inv_set_dead_zone_normal(true));
-	mldl_print_cfg(mldl_cfg);
-
 #ifdef ANDROID
-
-    if (mldl_cfg->slave[EXT_SLAVE_TYPE_COMPASS] &&
-        mldl_cfg->slave[EXT_SLAVE_TYPE_COMPASS]->id == COMPASS_ID_AK8975) {
-        CALL_CHECK_N_RETURN_ERROR(inv_enable_9x_fusion_external());
-        CALL_CHECK_N_RETURN_ERROR(inv_external_slave_akm8975_open());
-		printf("ak8975 \n");
-		
-    } else if (mldl_cfg->slave[EXT_SLAVE_TYPE_COMPASS] &&
-               mldl_cfg->slave[EXT_SLAVE_TYPE_COMPASS]->id ==
-               COMPASS_ID_AMI306) {
-        CALL_CHECK_N_RETURN_ERROR(inv_enable_9x_fusion_external());
-        CALL_CHECK_N_RETURN_ERROR(inv_external_slave_ami306_open());
-      //  CALL_CHECK_N_RETURN_ERROR(inv_enable_9x_fusion());
-    }	
-	else	
-	    CALL_CHECK_N_RETURN_ERROR(inv_enable_9x_fusion());
+    {
+        struct mldl_cfg *mldl_cfg = inv_get_dl_config();
+        if (mldl_cfg->slave[EXT_SLAVE_TYPE_COMPASS] &&
+            mldl_cfg->slave[EXT_SLAVE_TYPE_COMPASS]->id == COMPASS_ID_AK8975) {
+            CALL_CHECK_N_RETURN_ERROR(inv_enable_9x_fusion_external());
+            CALL_CHECK_N_RETURN_ERROR(inv_external_slave_akm8975_open());
+        } else if (mldl_cfg->slave[EXT_SLAVE_TYPE_COMPASS] &&
+                   mldl_cfg->slave[EXT_SLAVE_TYPE_COMPASS]->id ==
+                   COMPASS_ID_AMI306) {
+            CALL_CHECK_N_RETURN_ERROR(inv_enable_9x_fusion_external());
+            CALL_CHECK_N_RETURN_ERROR(inv_external_slave_ami306_open());
+        } else if (mldl_cfg->slave[EXT_SLAVE_TYPE_COMPASS] &&
+                   mldl_cfg->slave[EXT_SLAVE_TYPE_COMPASS]->id ==
+                   COMPASS_ID_MMC328X) {
+              
+	 printf("Compass id is %d\n", mldl_cfg->slave[EXT_SLAVE_TYPE_COMPASS]->id);
+            CALL_CHECK_N_RETURN_ERROR(inv_enable_9x_fusion_external());
+            CALL_CHECK_N_RETURN_ERROR(inv_external_slave_mmc3280_open());
+       }else {
+            CALL_CHECK_N_RETURN_ERROR(inv_enable_9x_fusion());
+        }
+    }
+#else
+    CALL_CHECK_N_RETURN_ERROR(inv_enable_9x_fusion());
 #endif
-
-
     CALL_CHECK_N_RETURN_ERROR( inv_enable_temp_comp() );
     CALL_CHECK_N_RETURN_ERROR( inv_enable_fast_nomot() );
-
 
     CALL_CHECK_N_RETURN_ERROR( inv_set_motion_callback(onMotion) );
     CALL_CHECK_N_RETURN_ERROR( inv_set_fifo_processed_callback(processedData) );
@@ -207,7 +214,6 @@ int main(int argc, char *argv[])
         MPL_LOGI("Interrupts unavailable on this platform\n");
         flag &= ~0x04;
     }
-	
 
     CALL_CHECK_N_RETURN_ERROR( inv_dmp_start() );
 
@@ -289,7 +295,7 @@ int main(int argc, char *argv[])
             inv_sleep(5);
             continue;
         } else if (key == 'h') {
-            MPL_LOGI(
+            printf(
                 "\n\n"
                 "0   -   turn all the features OFF\n"
                 "1   -   read WHO_AM_I\n"

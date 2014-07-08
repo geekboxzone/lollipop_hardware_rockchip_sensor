@@ -6,7 +6,7 @@
 
 /******************************************************************************
  *
- * $Id: ml_stored_data.c 6132 2011-10-01 03:17:27Z mcaramello $
+ * $Id: ml_stored_data.c 6278 2011-11-09 23:10:03Z mcaramello $
  *
  *****************************************************************************/
 
@@ -33,6 +33,7 @@
 #include "mlMathFunc.h"
 #include "mlsl.h"
 #include "mlos.h"
+#include "math.h"
 
 #include "log.h"
 #undef MPL_LOG_TAG
@@ -55,7 +56,7 @@ extern struct inv_obj_t inv_obj;
     When set to 0, the compiler will optimize and remove the printouts
     from the code.
 */
-#define LOADCAL_DEBUG    0
+#define LOADCAL_DEBUG    1
 #define STORECAL_DEBUG   0
 
 #define LOADCAL_LOG(...)                        \
@@ -251,6 +252,7 @@ inv_error_t inv_load_cal_V1(unsigned char *calData, unsigned short len)
     float gyroBias[3] = {0, 0, 0};
     float newTemp = 0;
     int bin;
+    inv_error_t result;
 
     LOADCAL_LOG("Entering inv_load_cal_V1\n");
 
@@ -327,9 +329,10 @@ inv_error_t inv_load_cal_V1(unsigned char *calData, unsigned short len)
         accelBias[2] -= 65536L;
     accelBias[2] = inv_q30_mult(accelBias[2]<<16, inv_obj.accel->sens);
     LOADCAL_LOG("accelBias[2] = %ld\n", accelBias[2]);
-    if (inv_set_array(INV_ACCEL_BIAS, accelBias)) {
-        LOG_RESULT_LOCATION(inv_set_array(INV_ACCEL_BIAS, accelBias));
-        return inv_set_array(INV_ACCEL_BIAS, accelBias);
+    result = inv_set_array(INV_ACCEL_BIAS, accelBias);
+    if (result) {
+        LOG_RESULT_LOCATION(result);
+        return result;
     }
 
     inv_obj.lite_fusion->got_no_motion_bias = true;
@@ -379,6 +382,7 @@ inv_error_t inv_load_cal_V2(unsigned char *calData, unsigned short len)
 
     int i, j;
     long tmp;
+    inv_error_t result;
 
     LOADCAL_LOG("Entering inv_load_cal_V2\n");
 
@@ -445,9 +449,10 @@ inv_error_t inv_load_cal_V2(unsigned char *calData, unsigned short len)
         LOADCAL_LOG("accel_bias[%d] = %ld\n", i, accel_bias[i]);
     }
 
-    if (inv_set_array(INV_ACCEL_BIAS, accel_bias)) {
-        LOG_RESULT_LOCATION(inv_set_array(INV_ACCEL_BIAS, accel_bias));
-        return inv_set_array(INV_ACCEL_BIAS, accel_bias);
+    result = inv_set_array(INV_ACCEL_BIAS, accel_bias);
+    if (result) {
+        LOG_RESULT_LOCATION(result);
+        return result;
     }
 
     inv_obj.lite_fusion->got_no_motion_bias = true;
@@ -499,6 +504,7 @@ inv_error_t inv_load_cal_V3(unsigned char *calData, unsigned short len)
     int i, j;
     int ptr = INV_CAL_HDR_LEN;
     long long tmp;
+    inv_error_t result;
 
     LOADCAL_LOG("Entering inv_load_cal_V3\n");
 
@@ -564,9 +570,10 @@ inv_error_t inv_load_cal_V3(unsigned char *calData, unsigned short len)
         ptr += 4;
         LOADCAL_LOG("accel_bias[%d] = %ld\n", i, bias[i]);
     }
-    if (inv_set_array(INV_ACCEL_BIAS, bias)) {
-        LOG_RESULT_LOCATION(inv_set_array(INV_ACCEL_BIAS, bias));
-        return inv_set_array(INV_ACCEL_BIAS, bias);
+    result = inv_set_array(INV_ACCEL_BIAS, bias);
+    if (result) {
+        LOG_RESULT_LOCATION(result);
+        return result;
     }
 
     /* read the compass biases */
@@ -637,6 +644,9 @@ inv_error_t inv_load_cal_V3(unsigned char *calData, unsigned short len)
  *
  *  @return INV_SUCCESS if successful, a non-zero error code otherwise.
  */
+
+#define MAX_BIAS  	30.0f
+#define ERROR_TEMP 	2462307L
 inv_error_t inv_load_cal_V4(unsigned char *calData, unsigned short len)
 {
     INVENSENSE_FUNC_START;
@@ -650,6 +660,8 @@ inv_error_t inv_load_cal_V4(unsigned char *calData, unsigned short len)
     int ptr = INV_CAL_HDR_LEN;
     int i, j;
     long long tmp;
+    inv_error_t result;
+	unsigned char is_bin24_wrong = false;
 
     LOADCAL_LOG("Entering inv_load_cal_V4\n");
 
@@ -687,6 +699,10 @@ inv_error_t inv_load_cal_V4(unsigned char *calData, unsigned short len)
             if (tmp > 2147483648LL) {
                 tmp -= 4294967296LL;
             }
+
+			if(tmp == ERROR_TEMP)
+				is_bin24_wrong = true;
+			
             inv_obj.gyro_tc->temp_data[i][j] = ((float)tmp) / 65536.0f;
             LOADCAL_LOG("gyro_tc->temp_data[%d][%d] = %f\n",
                         i, j, inv_obj.gyro_tc->temp_data[i][j]);
@@ -704,6 +720,9 @@ inv_error_t inv_load_cal_V4(unsigned char *calData, unsigned short len)
                 tmp -= 4294967296LL;
             }
             inv_obj.gyro_tc->x_gyro_temp_data[i][j] = ((float)tmp) / 65536.0f;
+
+			if(fabs(inv_obj.gyro_tc->x_gyro_temp_data[i][j]) > MAX_BIAS)
+				inv_obj.gyro_tc->x_gyro_temp_data[i][j] = 0;			
             LOADCAL_LOG("gyro_tc->x_gyro_temp_data[%d][%d] = %f\n",
                         i, j, inv_obj.gyro_tc->x_gyro_temp_data[i][j]);
         }
@@ -719,6 +738,8 @@ inv_error_t inv_load_cal_V4(unsigned char *calData, unsigned short len)
                 tmp -= 4294967296LL;
             }
             inv_obj.gyro_tc->y_gyro_temp_data[i][j] = ((float)tmp) / 65536.0f;
+			if(fabs(inv_obj.gyro_tc->y_gyro_temp_data[i][j]) > MAX_BIAS)
+				inv_obj.gyro_tc->y_gyro_temp_data[i][j] = 0;				
             LOADCAL_LOG("gyro_tc->y_gyro_temp_data[%d][%d] = %f\n",
                         i, j, inv_obj.gyro_tc->y_gyro_temp_data[i][j]);
         }
@@ -734,10 +755,26 @@ inv_error_t inv_load_cal_V4(unsigned char *calData, unsigned short len)
                 tmp -= 4294967296LL;
             }
             inv_obj.gyro_tc->z_gyro_temp_data[i][j] = ((float)tmp) / 65536.0f;
+			if(fabs(inv_obj.gyro_tc->z_gyro_temp_data[i][j]) > MAX_BIAS)
+				inv_obj.gyro_tc->z_gyro_temp_data[i][j] = 0;				
             LOADCAL_LOG("gyro_tc->z_gyro_temp_data[%d][%d] = %f\n",
                         i, j, inv_obj.gyro_tc->z_gyro_temp_data[i][j]);
         }
     }
+
+	if(is_bin24_wrong)
+	{
+		inv_obj.gyro_tc->temp_valid_data[24]=0;
+		inv_obj.gyro_tc->temp_ptrs[24] =0;
+
+		for(i =0 ;i< PTS_PER_BIN;i++)
+		{
+			inv_obj.gyro_tc->temp_data[24][i] = 0;
+			inv_obj.gyro_tc->x_gyro_temp_data[24][i]=0;
+			inv_obj.gyro_tc->y_gyro_temp_data[24][i]=0;
+			inv_obj.gyro_tc->z_gyro_temp_data[24][i]=0;	
+		}
+	}	
 
     /* read the accel biases */
     for (i = 0; i < 3; i++) {
@@ -749,9 +786,10 @@ inv_error_t inv_load_cal_V4(unsigned char *calData, unsigned short len)
         bias[i] = (int32_t) t;
         LOADCAL_LOG("accel_bias[%d] = %ld\n", i, bias[i]);
     }
-    if (inv_set_array(INV_ACCEL_BIAS, bias)) {
-        LOG_RESULT_LOCATION(inv_set_array(INV_ACCEL_BIAS, bias));
-        return inv_set_array(INV_ACCEL_BIAS, bias);
+    result = inv_set_array(INV_ACCEL_BIAS, bias);
+    if (result) {
+        LOG_RESULT_LOCATION(result);
+        return result;
     }
 
     /* read the compass biases */
@@ -890,6 +928,7 @@ inv_error_t inv_load_cal_V5(unsigned char *calData, unsigned short len)
     float newTemp;
     int bin;
     int i;
+    inv_error_t result;
 
     LOADCAL_LOG("Entering inv_load_cal_V5\n");
 
@@ -951,9 +990,10 @@ inv_error_t inv_load_cal_V5(unsigned char *calData, unsigned short len)
         accelBias[i] = (long)tmp;
         LOADCAL_LOG("accelBias[%d] = %ld\n", i, accelBias[i]);
     }
-    if (inv_set_array(INV_ACCEL_BIAS, accelBias)) {
-        LOG_RESULT_LOCATION(inv_set_array(INV_ACCEL_BIAS, accelBias));
-        return inv_set_array(INV_ACCEL_BIAS, accelBias);
+    result = inv_set_array(INV_ACCEL_BIAS, accelBias);
+    if (result) {
+        LOG_RESULT_LOCATION(result);
+        return result;
     }
 
     inv_obj.lite_fusion->got_no_motion_bias = true;

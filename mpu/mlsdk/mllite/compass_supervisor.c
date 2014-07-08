@@ -6,7 +6,7 @@
 
 /*******************************************************************************
  *
- * $Id: compass_supervisor.c 6132 2011-10-01 03:17:27Z mcaramello $
+ * $Id: compass_supervisor.c 6271 2011-11-09 01:05:14Z kkeal $
  *
  ******************************************************************************/
 
@@ -43,9 +43,50 @@ static struct compass_rate_t compass_rate_obj;
 
 struct compass_obj_t inv_compass_obj;
 
+struct inv_external_compass_t
+{
+    long compass[3];
+    int accuracy;
+    int received;
+    int mode;
+};
+static struct inv_external_compass_t ec;
+
+/** Set compass data from an external source
+* @param[in] compass Compass data, length 3, in uT * 2^16 in body frame.
+* @param[in] accuracy Accuracy of compass data.
+*/
+void inv_set_external_compass_data(long *compass, int accuracy)
+{
+    ec.received = 1;
+    ec.accuracy = accuracy;
+    ec.compass[0] = compass[0];
+    ec.compass[1] = compass[1];
+    ec.compass[2] = compass[2];
+}
+
+int inv_get_external_accuracy()
+{
+    if (ec.mode)
+        return ec.accuracy;
+    else
+        return -1;
+}
+
+
+/** Call this function once to enable compass data being received externally through
+* the inv_set_external_compass_data() function.
+*/
+void inv_set_external_compass_mode()
+{
+    ec.mode = 1;
+}
+
 inv_error_t inv_enable_compass_supervisor(void)
 {
     inv_error_t result;
+
+    memset(&ec, 0, sizeof(ec));
     result = inv_create_mutex(&compass_rate_obj.mutex);
     if (result) {
         LOG_RESULT_LOCATION(result);
@@ -85,7 +126,7 @@ inv_error_t inv_disable_compass_supervisor(void)
     result = inv_unregister_fifo_rate_process(inv_run_compass_rate_processes);
     return result;
 }
-//gaocheng@ethink.biz
+
 /**
  * @internal
  * @brief   This registers a function to be called for each set of
@@ -206,7 +247,6 @@ inv_error_t inv_run_compass_rate_processes(struct inv_obj_t *inv_obj)
                 if (result == INV_SUCCESS)
                     result = result2;
                 MPL_LOGW_IF(result2 > 0,
-//MPL_LOGI(               
                     "Calling compass_process_cb %d/%d, "
                     "priority %d, callback %p, "
                     "polltime %ld, pollrate %ld, "
@@ -241,6 +281,19 @@ inv_error_t inv_try_compass(int *got_data)
 
     /* Do nothing if compass isn't present or turned off */
     if (!inv_compass_present()) {
+        return INV_SUCCESS;
+    }
+
+    if (ec.mode) {
+        // Data from an external source
+        if (ec.received) {
+            inv_compass_obj.calibrated[0] = ec.compass[0];
+            inv_compass_obj.calibrated[1] = ec.compass[1];
+            inv_compass_obj.calibrated[2] = ec.compass[2];
+            inv_compass_obj.accuracy = ec.accuracy;
+            ec.received = 0;
+            *got_data = 1;
+        }
         return INV_SUCCESS;
     }
 

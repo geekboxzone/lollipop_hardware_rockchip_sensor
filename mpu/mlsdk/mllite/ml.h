@@ -5,7 +5,7 @@
  */
 /******************************************************************************
  *
- * $Id: ml.h 6226 2011-10-22 01:23:16Z mcaramello $
+ * $Id: ml.h 6275 2011-11-09 08:53:35Z mcaramello $
  *
  *****************************************************************************/
 
@@ -51,22 +51,22 @@ extern "C" {
 
 #define INV_VERSION_MAJOR                4
 #define INV_VERSION_MINOR                1
-#define INV_VERSION_SUB_MINOR            1
+#define INV_VERSION_SUB_MINOR            2
 
 #define INV_VERSION_MAJOR_STR           "4"
 #define INV_VERSION_MINOR_STR           "1"
-#define INV_VERSION_SUB_MINOR_STR       "1"
+#define INV_VERSION_SUB_MINOR_STR       "2"
 
 #define INV_VERSION_NONE                ""
-#define INV_VERSION_PROTOTYPE           "ProtoA "
-#define INV_VERSION_ENGINEERING         "EngA "
+#define INV_VERSION_PROTOTYPE           "Prototype "
+#define INV_VERSION_ENGINEERING         "Engineering "
 #define INV_VERSION_PRE_ALPHA           "Pre-Alpha "
 #define INV_VERSION_ALPHA               "Alpha "
 #define INV_VERSION_BETA                "Beta "
 #define INV_VERSION_PRODUCTION          "Production "
 
 #ifndef INV_VERSION_TYPE
-#define INV_VERSION_TYPE                INV_VERSION_NONE
+#define INV_VERSION_TYPE                INV_VERSION_ENGINEERING
 #endif
 
 #define INV_VERSION  "InvenSense MPL" " " \
@@ -455,12 +455,12 @@ struct inv_obj_t {
 
     /*API for handling the buffer */
     inv_error_t inv_update_data(void);
+    inv_error_t inv_update_data_external_compass(long *compass, int accuracy);
 
     /*API for handling polling */
     int inv_check_flag(int flag);
 
     /*API for enabling/disabling bias trackers */
-	inv_error_t inv_set_bias_update(unsigned short biasFunction);
     inv_error_t inv_enable_bias_from_LPF(int check_compass);
     inv_error_t inv_disable_bias_from_LPF(void);
     inv_error_t inv_enable_bias_from_gravity(int check_compass);
@@ -469,6 +469,9 @@ struct inv_obj_t {
     inv_error_t inv_set_dead_zone_normal(int check_compass);
     inv_error_t inv_set_dead_zone_high(void);
 
+    inv_error_t inv_turn_on_bias_from_no_motion(void);
+    inv_error_t inv_turn_off_bias_from_no_motion(void);
+    inv_error_t inv_set_mpu_6050_config(void);
 
     /* Legacy functions for handling augmented data*/
     inv_error_t inv_get_array(int dataSet, long *data);

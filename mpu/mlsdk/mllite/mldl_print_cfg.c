@@ -22,7 +22,7 @@
 #define MPL_LOG_TAG "mldl_print_cfg:"
 
 #undef MPL_LOG_NDEBUG
-#define MPL_LOG_NDEBUG 0
+#define MPL_LOG_NDEBUG 1
 
 void mldl_print_cfg(struct mldl_cfg *mldl_cfg)
 {
@@ -35,68 +35,68 @@ void mldl_print_cfg(struct mldl_cfg *mldl_cfg)
 	struct mpu_platform_data *pdata		= mldl_cfg->pdata;
 	struct ext_slave_platform_data **pdata_slave = mldl_cfg->pdata_slave;
 	int ii;
-  
+
 	/* mpu_gyro_cfg */
-	MPL_LOGI("int_config     = %02x\n", mpu_gyro_cfg->int_config);
-	MPL_LOGI("ext_sync       = %02x\n", mpu_gyro_cfg->ext_sync);
-	MPL_LOGI("full_scale     = %02x\n", mpu_gyro_cfg->full_scale);
-	MPL_LOGI("lpf            = %02x\n", mpu_gyro_cfg->lpf);
-	MPL_LOGI("clk_src        = %02x\n", mpu_gyro_cfg->clk_src);
-	MPL_LOGI("divider        = %02x\n", mpu_gyro_cfg->divider);
-	MPL_LOGI("dmp_enable     = %02x\n", mpu_gyro_cfg->dmp_enable);
-	MPL_LOGI("fifo_enable    = %02x\n", mpu_gyro_cfg->fifo_enable);
-	MPL_LOGI("dmp_cfg1       = %02x\n", mpu_gyro_cfg->dmp_cfg1);
-	MPL_LOGI("dmp_cfg2       = %02x\n", mpu_gyro_cfg->dmp_cfg2);
+	MPL_LOGV("int_config     = %02x\n", mpu_gyro_cfg->int_config);
+	MPL_LOGV("ext_sync       = %02x\n", mpu_gyro_cfg->ext_sync);
+	MPL_LOGV("full_scale     = %02x\n", mpu_gyro_cfg->full_scale);
+	MPL_LOGV("lpf            = %02x\n", mpu_gyro_cfg->lpf);
+	MPL_LOGV("clk_src        = %02x\n", mpu_gyro_cfg->clk_src);
+	MPL_LOGV("divider        = %02x\n", mpu_gyro_cfg->divider);
+	MPL_LOGV("dmp_enable     = %02x\n", mpu_gyro_cfg->dmp_enable);
+	MPL_LOGV("fifo_enable    = %02x\n", mpu_gyro_cfg->fifo_enable);
+	MPL_LOGV("dmp_cfg1       = %02x\n", mpu_gyro_cfg->dmp_cfg1);
+	MPL_LOGV("dmp_cfg2       = %02x\n", mpu_gyro_cfg->dmp_cfg2);
 	/* mpu_offsets */
-	MPL_LOGI("tc[0]      = %02x\n", mpu_offsets->tc[0]);
-	MPL_LOGI("tc[1]      = %02x\n", mpu_offsets->tc[1]);
-	MPL_LOGI("tc[2]      = %02x\n", mpu_offsets->tc[2]);
-	MPL_LOGI("gyro[0]    = %04x\n", mpu_offsets->gyro[0]);
-	MPL_LOGI("gyro[1]    = %04x\n", mpu_offsets->gyro[1]);
-	MPL_LOGI("gyro[2]    = %04x\n", mpu_offsets->gyro[2]);
+	MPL_LOGV("tc[0]      = %02x\n", mpu_offsets->tc[0]);
+	MPL_LOGV("tc[1]      = %02x\n", mpu_offsets->tc[1]);
+	MPL_LOGV("tc[2]      = %02x\n", mpu_offsets->tc[2]);
+	MPL_LOGV("gyro[0]    = %04x\n", mpu_offsets->gyro[0]);
+	MPL_LOGV("gyro[1]    = %04x\n", mpu_offsets->gyro[1]);
+	MPL_LOGV("gyro[2]    = %04x\n", mpu_offsets->gyro[2]);
 
 	/* mpu_chip_info */
-	MPL_LOGI("addr            = %02x\n", mldl_cfg->mpu_chip_info->addr);
+	MPL_LOGV("addr            = %02x\n", mldl_cfg->mpu_chip_info->addr);
 
-	MPL_LOGI("silicon_revision = %02x\n", mpu_chip_info->silicon_revision);
-	MPL_LOGI("product_revision = %02x\n", mpu_chip_info->product_revision);
-	MPL_LOGI("product_id       = %02x\n", mpu_chip_info->product_id);
-	MPL_LOGI("gyro_sens_trim   = %02x\n", mpu_chip_info->gyro_sens_trim);
+	MPL_LOGV("silicon_revision = %02x\n", mpu_chip_info->silicon_revision);
+	MPL_LOGV("product_revision = %02x\n", mpu_chip_info->product_revision);
+	MPL_LOGV("product_id       = %02x\n", mpu_chip_info->product_id);
+	MPL_LOGV("gyro_sens_trim   = %02x\n", mpu_chip_info->gyro_sens_trim);
+	MPL_LOGV("accel_sens_trim  = %02x\n", mpu_chip_info->accel_sens_trim);
 
-	MPL_LOGI("requested_sensors = %04x\n", inv_mpu_cfg->requested_sensors);
-	MPL_LOGI("ignore_system_suspend= %04x\n",
+	MPL_LOGV("requested_sensors = %04x\n", inv_mpu_cfg->requested_sensors);
+	MPL_LOGV("ignore_system_suspend= %04x\n",
 		inv_mpu_cfg->ignore_system_suspend);
-	MPL_LOGI("status = %04x\n", inv_mpu_state->status);
-	MPL_LOGI("i2c_slaves_enabled= %04x\n",
+	MPL_LOGV("status = %04x\n", inv_mpu_state->status);
+	MPL_LOGV("i2c_slaves_enabled= %04x\n",
 		inv_mpu_state->i2c_slaves_enabled);
 
 	for (ii = 0; ii < EXT_SLAVE_NUM_TYPES; ii++) {
 		if (!slave[ii])
 			continue;
-		MPL_LOGI("SLAVE %d:\n", ii);
-		MPL_LOGI("    suspend  = %02x\n", (int)slave[ii]->suspend);
-		MPL_LOGI("    resume   = %02x\n", (int)slave[ii]->resume);
-		MPL_LOGI("    read     = %02x\n", (int)slave[ii]->read);
-		MPL_LOGI("    type     = %02x\n", slave[ii]->type);
-		MPL_LOGI("    id    = %02x\n",    slave[ii]->id);			
-		MPL_LOGI("    reg      = %02x\n", slave[ii]->read_reg);
-		MPL_LOGI("    len      = %02x\n", slave[ii]->read_len);
-		MPL_LOGI("    endian   = %02x\n", slave[ii]->endian);
-		MPL_LOGI("    range.mantissa= %02x\n",
+		MPL_LOGV("SLAVE %d:\n", ii);
+		MPL_LOGV("    suspend  = %02x\n", (int)slave[ii]->suspend);
+		MPL_LOGV("    resume   = %02x\n", (int)slave[ii]->resume);
+		MPL_LOGV("    read     = %02x\n", (int)slave[ii]->read);
+		MPL_LOGV("    type     = %02x\n", slave[ii]->type);
+		MPL_LOGV("    reg      = %02x\n", slave[ii]->read_reg);
+		MPL_LOGV("    len      = %02x\n", slave[ii]->read_len);
+		MPL_LOGV("    endian   = %02x\n", slave[ii]->endian);
+		MPL_LOGV("    range.mantissa= %02x\n",
 			slave[ii]->range.mantissa);
-		MPL_LOGI("    range.fraction= %02x\n",
+		MPL_LOGV("    range.fraction= %02x\n",
 			slave[ii]->range.fraction);
 	}
 
 	for (ii = 0; ii < EXT_SLAVE_NUM_TYPES; ii++) {
 		if (!pdata_slave[ii])
 			continue;
-		MPL_LOGI("PDATA_SLAVE[%d]\n", ii);
-		MPL_LOGI("    irq        = %02x\n", pdata_slave[ii]->irq);
-		MPL_LOGI("    adapt_num  = %02x\n", pdata_slave[ii]->adapt_num);
-		MPL_LOGI("    bus        = %02x\n", pdata_slave[ii]->bus);
-		MPL_LOGI("    address    = %02x\n", pdata_slave[ii]->address);	
-		MPL_LOGI("    orientation=\n"
+		MPL_LOGV("PDATA_SLAVE[%d]\n", ii);
+		MPL_LOGV("    irq        = %02x\n", pdata_slave[ii]->irq);
+		MPL_LOGV("    adapt_num  = %02x\n", pdata_slave[ii]->adapt_num);
+		MPL_LOGV("    bus        = %02x\n", pdata_slave[ii]->bus);
+		MPL_LOGV("    address    = %02x\n", pdata_slave[ii]->address);
+		MPL_LOGV("    orientation=\n"
 			"                            %2d %2d %2d\n"
 			"                            %2d %2d %2d\n"
 			"                            %2d %2d %2d\n",
@@ -111,9 +111,9 @@ void mldl_print_cfg(struct mldl_cfg *mldl_cfg)
 			pdata_slave[ii]->orientation[8]);
 	}
 
-	MPL_LOGI("pdata->int_config         = %02x\n", pdata->int_config);
-	MPL_LOGI("pdata->level_shifter      = %02x\n", pdata->level_shifter);
-	MPL_LOGI("pdata->orientation        =\n"
+	MPL_LOGV("pdata->int_config         = %02x\n", pdata->int_config);
+	MPL_LOGV("pdata->level_shifter      = %02x\n", pdata->level_shifter);
+	MPL_LOGV("pdata->orientation        =\n"
 		 "                            %2d %2d %2d\n"
 		 "                            %2d %2d %2d\n"
 		 "                            %2d %2d %2d\n",

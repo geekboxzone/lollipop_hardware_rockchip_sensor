@@ -109,8 +109,12 @@ inv_error_t inv_self_test_bias_run(void)
  */
 inv_error_t inv_self_test_accel_z_run(void)
 {
-    MPL_LOGI("self_test_accel_z not available for MPU3050 devices\n");
-    return INV_SUCCESS;
+    if (inv_get_state() < INV_STATE_DMP_OPENED) {
+        MPL_LOGE("Self Test cannot run before inv_dmp_open()\n");
+        return INV_ERROR_SM_IMPROPER_STATE;
+    }
+    return inv_device_test(inv_get_serial_handle(),
+                           INV_Z_ACCEL, false, false);
 }
 
 /**

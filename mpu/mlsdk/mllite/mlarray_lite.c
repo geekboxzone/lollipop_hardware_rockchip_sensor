@@ -1708,13 +1708,15 @@ inv_error_t inv_set_accel_bias(long *data)
         inv_obj.accel->bias[i] = data[i];
         if (inv_obj.accel->sens != 0 && mldl_cfg && mldl_cfg->pdata) {
             long long tmp64;
-            inv_obj.accel->scaled_bias[i] = 0;
+            inv_obj.accel->scaled_bias[i] = data[i];
+			/*
             for (j = 0; j < ACCEL_NUM_AXES; j++) {
                 inv_obj.accel->scaled_bias[i] +=
                     data[j] *
                     (long)mldl_cfg->pdata_slave[EXT_SLAVE_TYPE_ACCEL]
                         ->orientation[i * 3 + j];
             }
+            */
             tmp64 = (long long)inv_obj.accel->scaled_bias[i] << 13;
             biasTmp = (long)(tmp64 / inv_obj.accel->sens);
         } else {

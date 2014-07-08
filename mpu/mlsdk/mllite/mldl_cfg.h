@@ -18,7 +18,7 @@
 #include "mltypes.h"
 #include "mlsl.h"
 #include <linux/mpu.h>
-#include "mpu3050.h"
+#include "mpu6050b1.h"
 
 #include "log.h"
 
@@ -99,6 +99,7 @@ struct mpu_chip_info {
 struct inv_mpu_cfg {
 	__u32 requested_sensors;
 	__u8 ignore_system_suspend;
+	__u8 need_gyro_block;
 };
 
 /* Driver related state information */

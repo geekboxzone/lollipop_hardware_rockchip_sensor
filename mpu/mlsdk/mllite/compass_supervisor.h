@@ -6,7 +6,7 @@
 
 /*******************************************************************************
  *
- * $Id: compass_supervisor.h 5909 2011-08-16 22:43:16Z mcaramello $
+ * $Id: compass_supervisor.h 6271 2011-11-09 01:05:14Z kkeal $
  *
  ******************************************************************************/
 
@@ -29,6 +29,7 @@ struct compass_obj_t {
     long bias[3];
     long init_bias[3]; /* Used to center compass data for extreme local body fields */
     unsigned long delta_time; /* Time in milliseconds from last measurement */
+    int accuracy; /* Only used for when receiving compass externally */
 };
 
 #define INV_COMPASS_PRIORITY_RAW_DATA                   100
@@ -57,6 +58,8 @@ inv_error_t inv_unregister_compass_rate_process(
 inv_error_t inv_register_compass_rate_process(
                 inv_error_t (*func)(struct compass_obj_t *obj), int priority);
 inv_error_t inv_calibrate_compass(struct compass_obj_t *obj);
+int inv_get_external_accuracy();
+void inv_set_external_compass_data(long *compass, int accuracy);
 
 #ifdef __cplusplus
 }

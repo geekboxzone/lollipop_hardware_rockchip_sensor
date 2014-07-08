@@ -11,6 +11,8 @@ ML_COMMON_DIR  = $(MLSDK_ROOT)/mlapps/common
 MPL_DIR        = $(MLSDK_ROOT)/mldmp
 AICHI_DIR      = $(MLSDK_ROOT)/external/aichi
 AKM_DIR        = $(MLSDK_ROOT)/external/akmd
+AKM8963_DIR    = $(MLSDK_ROOT)/external/akm8963
+MEMSIC_DIR     = $(MLSDK_ROOT)/external/memsic
 MLLITE_DIR     = $(MLSDK_ROOT)/mllite
 MLPLATFORM_DIR = $(MLSDK_ROOT)/platform
 
@@ -30,11 +32,13 @@ CFLAGS += -I$(MLPLATFORM_DIR)/linux
 CFLAGS += -I$(MLSDK_ROOT)/mlutils 
 CFLAGS += -I$(MLSDK_ROOT)/mltools/debugsupport
 CFLAGS += -I$(AICHI_DIR) 
-CFLAGS += -I$(AKM_DIR)
+CFLAGS += -I$(AKM_DIR) 
+#CFLAGS += -I$(AKM8963_DIR) 
+CFLAGS += -I$(MEMSIC_DIR)
 CFLAGS += -I$(ML_COMMON_DIR) 
 CFLAGS += -I$(MLSDK_ROOT)/external/aichi
 
-LLIBS = -lc -lm -lutils -lcutils -lgcc -ldl
+LLIBS = -lc -lm -lutils -lcutils -lgcc
 
 PRE_LFLAGS += -Wl,-T,$(ANDROID_ROOT)/build/core/armelf.x
 PRE_LFLAGS += $(ANDROID_ROOT)/out/target/product/$(PRODUCT)/obj/lib/crtend_android.o
@@ -57,9 +61,13 @@ VPATH += $(ML_COMMON_DIR) $(MLLITE_DIR)
 
 ML_LIBS  = $(MPL_DIR)/mpl/$(TARGET)/$(LIB_PREFIX)$(MPL_LIB_NAME).$(STATIC_LIB_EXT)
 ML_LIBS += $(AICHI_DIR)/mpl/$(TARGET)/$(LIB_PREFIX)$(AICHI_LIB_NAME).$(STATIC_LIB_EXT)
-#ML_LIBS += $(AICHI_DIR)/mpl/$(TARGET)/$(AICHI_EXT_LIB)
+ML_LIBS += $(AICHI_DIR)/mpl/$(TARGET)/$(AICHI_EXT_LIB)
 ML_LIBS += $(AKM_DIR)/mpl/$(TARGET)/$(LIB_PREFIX)$(AKM_LIB_NAME).$(STATIC_LIB_EXT)
 ML_LIBS += $(AKM_DIR)/mpl/$(TARGET)/$(AKM_EXT_LIB)
+#ML_LIBS += $(AKM8963_DIR)/mpl/$(TARGET)/$(LIB_PREFIX)$(AKM8963_LIB_NAME).$(STATIC_LIB_EXT)
+#ML_LIBS += $(AKM8963_DIR)/mpl/$(TARGET)/$(AKM8963_EXT_LIB)
+ML_LIBS += $(MEMSIC_DIR)/mpl/$(TARGET)/$(LIB_PREFIX)$(MEMSIC_LIB_NAME).$(STATIC_LIB_EXT)
+ML_LIBS += $(MEMSIC_DIR)/mpl/$(TARGET)/$(MEMSIC_EXT_LIB)
 ML_LIBS += $(MLLITE_DIR)/mpl/$(TARGET)/$(LIB_PREFIX)$(MLLITE_LIB_NAME).$(STATIC_LIB_EXT)
 ML_LIBS += $(MLPLATFORM_DIR)/linux/$(LIB_PREFIX)$(MLPLATFORM_LIB_NAME).$(STATIC_LIB_EXT)
 

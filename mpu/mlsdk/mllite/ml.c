@@ -5,7 +5,7 @@
  */
 /******************************************************************************
  *
- * $Id: ml.c 6218 2011-10-19 04:13:47Z mcaramello $
+ * $Id: ml.c 6276 2011-11-09 22:40:46Z mcaramello $
  *
  *****************************************************************************/
 
@@ -223,7 +223,13 @@ inv_error_t inv_apply_calibration(void)
             mldl_cfg->slave[EXT_SLAVE_TYPE_ACCEL]->range, accelScale);
         inv_obj.accel->sens = (long)(accelScale * 65536L);
         /* sensitivity adjustment, typically = 2 (for +/- 2 gee) */
-        inv_obj.accel->sens /= 2;
+        if (ACCEL_ID_MPU6050 == mldl_cfg->slave[EXT_SLAVE_TYPE_ACCEL]->id) {
+            /* the line below is an optimized version of:
+               accel_sens      = accel_sens / 2 * (16384 / accel_sens_trim) */
+            inv_obj.accel->sens = inv_obj.accel->sens /
+                mldl_cfg->mpu_chip_info->accel_sens_trim * 8192;
+        } else
+            inv_obj.accel->sens /= 2;
     }
     if (mldl_cfg->pdata_slave[EXT_SLAVE_TYPE_COMPASS]) {
         for (ii = 0; ii < 9; ii++) {
@@ -395,14 +401,6 @@ inv_error_t inv_reset_motion(void)
     inv_obj.lite_fusion->motion_state = INV_MOTION;
     inv_obj.sys->flags[INV_MOTION_STATE_CHANGE] = INV_MOTION;
     inv_obj.lite_fusion->no_motion_accel_time = inv_get_tick_count();
-    regs[0] = DINAD8 + 2;
-    regs[1] = DINA0C;
-    regs[2] = DINAD8 + 1;
-    result = inv_set_mpu_memory(KEY_CFG_18, 3, regs);
-    if (result) {
-        LOG_RESULT_LOCATION(result);
-        return result;
-    }
     regs[0] = (unsigned char)((inv_obj.lite_fusion->motion_duration >> 8) & 0xff);
     regs[1] = (unsigned char)(inv_obj.lite_fusion->motion_duration & 0xff);
     result = inv_set_mpu_memory(KEY_D_1_106, 2, regs);
@@ -453,7 +451,6 @@ inv_error_t inv_reset_motion(void)
             return result;
         }
     }
-    inv_set_motion_state(INV_MOTION);
     return result;
 }
 
@@ -537,6 +534,15 @@ inv_error_t inv_update_data(void)
     }
 
     result = inv_get_fifo_status();
+    return result;
+}
+
+inv_error_t inv_update_data_external_compass(long *compass, int accuracy)
+{
+    inv_error_t result;
+
+    inv_set_external_compass_data(compass, accuracy);
+    result = inv_update_data();
     return result;
 }
 
@@ -851,7 +857,7 @@ inv_error_t inv_accel_dmp_cal(void)
     }
 
     if (mldl_cfg->slave[EXT_SLAVE_TYPE_ACCEL]->id) {
-        unsigned char tmp[3] = { DINA4C, DINACD, DINA6C };
+        unsigned char tmp[3] = { DINA0C, DINAC9, DINA2C };
         struct mldl_cfg *mldl_cfg = inv_get_dl_config();
         unsigned char regs[3];
 
@@ -867,7 +873,12 @@ inv_error_t inv_accel_dmp_cal(void)
 
         regs[0] = DINA26;
         regs[1] = DINA46;
-        regs[2] = DINA66;
+        if (MPL_PROD_KEY(mldl_cfg->mpu_chip_info->product_id,
+                         mldl_cfg->mpu_chip_info->product_revision)
+            == MPU_PRODUCT_KEY_B1_E1_5)
+            regs[2] = DINA76;
+        else
+            regs[2] = DINA66;
         if (inv_accel_orient & 4)
             regs[0] |= 1;
         if (inv_accel_orient & 0x20)
@@ -881,20 +892,6 @@ inv_error_t inv_accel_dmp_cal(void)
             return result;
         }
 
-        if (mldl_cfg->slave[EXT_SLAVE_TYPE_ACCEL]->id == ACCEL_ID_MMA845X) {
-            result = inv_freescale_sensor_fusion_16bit();
-            if (result) {
-                LOG_RESULT_LOCATION(result);
-                return result;
-            }
-        } else if (mldl_cfg->slave[EXT_SLAVE_TYPE_ACCEL]->id ==
-                   ACCEL_ID_MMA8450) {
-            result = inv_freescale_sensor_fusion_8bit();
-            if (result) {
-                LOG_RESULT_LOCATION(result);
-                return result;
-            }
-        }
     }
 
     if (inv_obj.accel->sens != 0) {
@@ -968,9 +965,9 @@ inv_error_t inv_gyro_dmp_cal()
 
     unsigned char regs[4];
     inv_error_t result;
-        unsigned char tmpD = DINAC9;
-        unsigned char tmpE = DINA2C;
-        unsigned char tmpF = DINACB;
+        unsigned char tmpD = DINA4C;
+        unsigned char tmpE = DINACD;
+        unsigned char tmpF = DINA6C;
 
     if (inv_get_state() != INV_STATE_DMP_OPENED)
         return INV_ERROR_SM_IMPROPER_STATE;
@@ -1562,157 +1559,6 @@ inv_error_t inv_bias_from_gravity_CB(unsigned char new_state)
 }
 
 /**
- *  @brief  inv_set_bias_update is used to register which algorithms will be
- *          used to automatically reset the gyroscope bias.
- *          The engine INV_BIAS_UPDATE must be enabled for these algorithms to
- *          run.
- *
- *  @pre    inv_dmp_open()
- *          @ifnot MPL_MF
- *              or inv_open_low_power_pedometer()
- *              or inv_eis_open_dmp()
- *          @endif
- *          and inv_dmp_start()
- *          must <b>NOT</b> have been called.
- *
- *  @param  function    A function or bitwise OR of functions that determine
- *                      how the gyroscope bias will be automatically updated.
- *                      Functions include:
- *                      - INV_NONE or 0,
- *                      - INV_BIAS_FROM_NO_MOTION,
- *                      - INV_BIAS_FROM_GRAVITY,
- *                      - INV_BIAS_FROM_TEMPERATURE,
-                    \ifnot UMPL
- *                      - INV_BIAS_FROM_LPF,
- *                      - INV_MAG_BIAS_FROM_MOTION,
- *                      - INV_MAG_BIAS_FROM_GYRO,
- *                      - INV_ALL.
- *                   \endif
- *  @return INV_SUCCESS if successful or Non-zero error code otherwise.
- */
-inv_error_t inv_set_bias_update(unsigned short function)
-{
-	//add the interface according to hardware/invensense
-#if 0
-    INVENSENSE_FUNC_START;
-    unsigned char regs[4];
-    long tmp[3] = { 0, 0, 0 };
-    inv_error_t result = INV_SUCCESS;
-    struct mldl_cfg *mldl_cfg = inv_get_dl_config();
-
-    if (inv_get_state() != INV_STATE_DMP_OPENED)
-        return INV_ERROR_SM_IMPROPER_STATE;
-
-    /* do not allow progressive no motion bias tracker to run -
-       it's not fully debugged */
-    function &= ~INV_PROGRESSIVE_NO_MOTION; // FIXME, workaround
-    MPL_LOGV("forcing disable of PROGRESSIVE_NO_MOTION bias tracker\n");
-
-    // You must use EnableFastNoMotion() to get this feature
-    function &= ~INV_BIAS_FROM_FAST_NO_MOTION;
-
-    // You must use DisableFastNoMotion() to turn this feature off
-    if (inv_params_obj.bias_mode & INV_BIAS_FROM_FAST_NO_MOTION)
-        function |= INV_BIAS_FROM_FAST_NO_MOTION;
-
-    /*--- remove magnetic components from bias tracking
-          if there is no compass ---*/
-    if (!inv_compass_present()) {
-        function &= ~(INV_MAG_BIAS_FROM_GYRO | INV_MAG_BIAS_FROM_MOTION);
-    } else {
-        function &= ~(INV_BIAS_FROM_LPF);
-    }
-
-    // Enable function sets bias from no motion
-    inv_params_obj.bias_mode = function & (~INV_BIAS_FROM_NO_MOTION);
-
-    if (function & INV_BIAS_FROM_NO_MOTION) {
-        inv_enable_bias_no_motion();
-    } else {
-        inv_disable_bias_no_motion();
-    }
-
-    if (inv_params_obj.bias_mode & INV_BIAS_FROM_LPF) {
-        regs[0] = DINA80 + 2;
-        regs[1] = DINA2D;
-        regs[2] = DINA55;
-        regs[3] = DINA7D;
-    } else {
-        regs[0] = DINA80 + 7;
-        regs[1] = DINA2D;
-        regs[2] = DINA35;
-        regs[3] = DINA3D;
-    }
-    result = inv_set_mpu_memory(KEY_FCFG_5, 4, regs);
-    if (result) {
-        LOG_RESULT_LOCATION(result);
-        return result;
-    }
-    result = inv_set_dead_zone();
-    if (result) {
-        LOG_RESULT_LOCATION(result);
-        return result;
-    }
-
-    if ((inv_params_obj.bias_mode & INV_BIAS_FROM_GRAVITY) &&
-        !inv_compass_present()) {
-        result = inv_set_gyro_data_source(INV_GYRO_FROM_QUATERNION);
-        if (result) {
-            LOG_RESULT_LOCATION(result);
-            return result;
-        }
-    } else {
-        result = inv_set_gyro_data_source(INV_GYRO_FROM_RAW);
-        if (result) {
-            LOG_RESULT_LOCATION(result);
-            return result;
-        }
-    }
-
-    inv_obj.factory_temp_comp = 0;  // FIXME, workaround
-    if ((mldl_cfg->offset_tc[0] != 0) ||
-        (mldl_cfg->offset_tc[1] != 0) || (mldl_cfg->offset_tc[2] != 0)) {
-        inv_obj.factory_temp_comp = 1;
-    }
-
-    if (inv_obj.factory_temp_comp == 0) {
-        if (inv_params_obj.bias_mode & INV_BIAS_FROM_TEMPERATURE) {
-            result = inv_set_gyro_temp_slope(inv_obj.temp_slope);
-            if (result) {
-                LOG_RESULT_LOCATION(result);
-                return result;
-            }
-        } else {
-            result = inv_set_gyro_temp_slope(tmp);
-            if (result) {
-                LOG_RESULT_LOCATION(result);
-                return result;
-            }
-        }
-    } else {
-        inv_params_obj.bias_mode &= ~INV_LEARN_BIAS_FROM_TEMPERATURE;
-        MPL_LOGV("factory temperature compensation coefficients available - "
-                 "disabling INV_LEARN_BIAS_FROM_TEMPERATURE\n");
-    }
-
-    /*---- hard requirement for using bias tracking BIAS_FROM_GRAVITY, relying on
-           compass and accel data, is to have accelerometer data delivered in the
-           FIFO ----*/
-    if (((inv_params_obj.bias_mode & INV_BIAS_FROM_GRAVITY)
-         && inv_compass_present())
-        || (inv_params_obj.bias_mode & INV_MAG_BIAS_FROM_GYRO)
-        || (inv_params_obj.bias_mode & INV_MAG_BIAS_FROM_MOTION)) {
-        inv_send_accel(INV_ALL, INV_32_BIT);
-        inv_send_gyro(INV_ALL, INV_32_BIT);
-    }
-
-    return result;
-#endif
-	return 0;
-}
-
-
-/**
  *  @brief  inv_get_motion_state is used to determine if the device is in
  *          a 'motion' or 'no motion' state.
  *          inv_get_motion_state returns INV_MOTION of the device is moving,
@@ -1881,10 +1727,12 @@ inv_error_t inv_get_version(unsigned char **version)
  *
  * @return  true if the gyro is enabled false otherwise.
  */
+
 int inv_get_gyro_present(void)
 {
-    return inv_get_dl_config()->inv_mpu_cfg->requested_sensors &
-        (INV_X_GYRO | INV_Y_GYRO | INV_Z_GYRO);
+    return (!inv_get_dl_config()->inv_mpu_cfg->need_gyro_block &&
+                    (inv_get_dl_config()->inv_mpu_cfg->requested_sensors &
+                        (INV_X_GYRO | INV_Y_GYRO | INV_Z_GYRO)));
 }
 
 static unsigned short inv_row_2_scale(const signed char *row)
@@ -2195,6 +2043,28 @@ inv_error_t inv_set_mpu_sensors(unsigned long sensors)
         }
     }
 
+    if (mldl_cfg->pdata_slave[EXT_SLAVE_TYPE_ACCEL]) {
+        unsigned char regs[6];
+        unsigned short orient;
+
+        orient = inv_orientation_matrix_to_scalar(
+            mldl_cfg->pdata_slave[EXT_SLAVE_TYPE_ACCEL]->orientation);
+
+        if (sensors & INV_THREE_AXIS_ACCEL) {
+            if (ACCEL_ID_MPU6050 == mldl_cfg->slave[EXT_SLAVE_TYPE_ACCEL]->id) {
+                inv_mpu6050_accel(orient, 0, regs);
+                result = inv_set_mpu_memory(KEY_FCFG_2, 6, regs);
+            } else {
+                if (sensors & INV_THREE_AXIS_COMPASS) {
+                    inv_mpu6050_accel(orient, 1, regs);
+                    result = inv_set_mpu_memory(KEY_FCFG_2, 6, regs);
+                } else {
+                    inv_mpu6050_accel(orient, 2, regs);
+                    result = inv_set_mpu_memory(KEY_FCFG_2, 6, regs);
+                }
+            }
+        }
+    }
 
     mldl_cfg->inv_mpu_cfg->requested_sensors = sensors;
 
@@ -2250,8 +2120,67 @@ void inv_set_mode_change(inv_error_t(*mode_change_func)
 }
 
 /**
-* MPU6050 setup
+* Mantis setup
 */
+inv_error_t inv_set_mpu_6050_config(void)
+{
+    long temp;
+    inv_error_t result;
+    unsigned char big8[4];
+    unsigned char atc[4];
+    long s[3], s2[3];
+    int kk;
+    struct mldl_cfg *mldl_cfg = inv_get_dl_config();
+
+    result = inv_serial_read(inv_get_serial_handle(), inv_get_mpu_slave_addr(),
+                             0x0d, 4, atc);
+    if (result) {
+        LOG_RESULT_LOCATION(result);
+        return result;
+    }
+
+    temp = atc[3] & 0x3f;
+    if (temp >= 32)
+        temp = temp - 64;
+    temp = (temp << 21) | 0x100000;
+    temp += (1L << 29);
+    temp = -temp;
+    result = inv_set_mpu_memory(KEY_D_ACT0, 4, inv_int32_to_big8(temp, big8));
+    if (result) {
+        LOG_RESULT_LOCATION(result);
+        return result;
+    }
+
+    for (kk = 0; kk < 3; ++kk) {
+        s[kk] = atc[kk] & 0x3f;
+        if (s[kk] > 32)
+            s[kk] = s[kk] - 64;
+        s[kk] *= 2516582L;
+    }
+
+    for (kk = 0; kk < 3; ++kk) {
+        s2[kk] = mldl_cfg->pdata->orientation[kk * 3] * s[0] +
+            mldl_cfg->pdata->orientation[kk * 3 + 1] * s[1] +
+            mldl_cfg->pdata->orientation[kk * 3 + 2] * s[2];
+    }
+    result = inv_set_mpu_memory(KEY_D_ACSX, 4, inv_int32_to_big8(s2[0], big8));
+    if (result) {
+        LOG_RESULT_LOCATION(result);
+        return result;
+    }
+    result = inv_set_mpu_memory(KEY_D_ACSY, 4, inv_int32_to_big8(s2[1], big8));
+    if (result) {
+        LOG_RESULT_LOCATION(result);
+        return result;
+    }
+    result = inv_set_mpu_memory(KEY_D_ACSZ, 4, inv_int32_to_big8(s2[2], big8));
+    if (result) {
+        LOG_RESULT_LOCATION(result);
+        return result;
+    }
+
+    return result;
+}
 
 /**
  * @}

@@ -142,6 +142,20 @@ inv_error_t inv_set_max_gyro_bias(long bias)
     sgb.maxGyroBias = bias;
 
    //DMP Code to push down into Mantis
+    {
+        unsigned char regs[4];
+        long dmp_thresh;
+
+        dmp_thresh = (long)(bias*46850.8254f);
+
+        inv_int32_to_big8(dmp_thresh, &regs[0]);
+
+        result = inv_set_mpu_memory(KEY_D_2_236, 4, regs);
+        if (result) {
+            LOG_RESULT_LOCATION(result);
+            return result;
+        }
+    }
 
     return result;
 }

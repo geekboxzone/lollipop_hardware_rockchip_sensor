@@ -27,7 +27,7 @@
 #include <string.h>
 
 #include "mpu.h"
-#include "mpu3050.h"
+#include "mpu6050b1.h"
 #include "mldl.h"
 #include "mldl_cfg.h"
 #include "compass.h"
@@ -404,10 +404,6 @@ inv_error_t inv_set_dl_cfg_int(unsigned char triggers)
 {
     inv_error_t result = INV_SUCCESS;
 
-    /* MPU6050 has 8 bits of interrupt config bits */
-    if (triggers & ~(BIT_MPU_RDY_EN | BIT_DMP_INT_EN | BIT_RAW_RDY_EN)) {
-        return INV_ERROR_INVALID_PARAMETER;
-    }
 
     g_mldl_cfg->mpu_gyro_cfg->int_config = triggers;
     if (!(g_mldl_cfg->inv_mpu_state->status & MPU_DEVICE_IS_SUSPENDED)) {
@@ -598,23 +594,29 @@ inv_error_t inv_set_offsetTC(const unsigned char *tc)
     }
 
     if (!(g_mldl_cfg->inv_mpu_state->status & MPU_DEVICE_IS_SUSPENDED)) {
+        unsigned char reg;
         result = inv_serial_single_write(
             g_mlsl_handle, g_mldl_cfg->mpu_chip_info->addr,
-            MPUREG_XG_OFFS_TC, tc[0]);
+            MPUREG_XG_OFFS_TC,
+            ((g_mldl_cfg->mpu_offsets->tc[0] << 1) & BITS_XG_OFFS_TC));
+        if (result) {
+            LOG_RESULT_LOCATION(result);
+            return result;
+        }
+        reg = ((g_mldl_cfg->mpu_offsets->tc[1] << 1) & BITS_YG_OFFS_TC);
+        if (g_mldl_cfg->pdata->level_shifter)
+            reg |= BIT_I2C_MST_VDDIO;
+        result = inv_serial_single_write(
+            g_mlsl_handle, g_mldl_cfg->mpu_chip_info->addr,
+            MPUREG_YG_OFFS_TC, reg);
         if (result) {
             LOG_RESULT_LOCATION(result);
             return result;
         }
         result = inv_serial_single_write(
             g_mlsl_handle, g_mldl_cfg->mpu_chip_info->addr,
-            MPUREG_YG_OFFS_TC, tc[1]);
-        if (result) {
-            LOG_RESULT_LOCATION(result);
-            return result;
-        }
-        result = inv_serial_single_write(
-            g_mlsl_handle, g_mldl_cfg->mpu_chip_info->addr,
-            MPUREG_ZG_OFFS_TC, tc[2]);
+            MPUREG_ZG_OFFS_TC,
+            ((g_mldl_cfg->mpu_offsets->tc[2] << 1) & BITS_ZG_OFFS_TC));
         if (result) {
             LOG_RESULT_LOCATION(result);
             return result;

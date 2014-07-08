@@ -369,6 +369,7 @@
 
 #define DIND40 0x40
 
+
 #define DINA80 0x80
 #define DINA90 0x90
 #define DINAA0 0xa0
@@ -382,14 +383,20 @@
 #define DINACE 0xce
 #define DINAD8 0xd8
 #define DINADD 0xdd
-#define DINAF8 0xf8
+#define DINAF8 0xf0
 #define DINAFE 0xfe
-#define DINAC0 0xc0
-#define DINAC1 0xc1
-#define DINAC2 0xc2
-#define DINAC3 0xc3
-#define DINAC4 0xc4
-#define DINAC5 0xc5
+
+#define DINBF8 0xf8
+#define DINAC0 0xb0
+#define DINAC1 0xb1
+#define DINAC2 0xb4
+#define DINAC3 0xb5
+#define DINAC4 0xb8
+#define DINAC5 0xb9
+#define DINBC0 0xc0
+#define DINBC2 0xc2
+#define DINBC4 0xc4
+#define DINBC6 0xc6
 
 
 

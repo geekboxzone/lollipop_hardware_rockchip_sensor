@@ -6,7 +6,7 @@
 
 /******************************************************************************
  *
- * $Id: mlsupervisor.c 6218 2011-10-19 04:13:47Z mcaramello $
+ * $Id: mlsupervisor.c 6276 2011-11-09 22:40:46Z mcaramello $
  *
  *****************************************************************************/
 
@@ -56,6 +56,14 @@ void inv_init_sensor_fusion_supervisor(void)
     inv_obj.lite_fusion->acc_state = SF_STARTUP_SETTLE;
     compassCalStableCount = 0;
     compassCalCount = 0;
+    if (inv_compass_present()) {
+        struct mldl_cfg *mldl_cfg = inv_get_dl_config();
+        if (mldl_cfg->pdata_slave[EXT_SLAVE_TYPE_COMPASS]->bus == 
+            EXT_SLAVE_BUS_SECONDARY) {
+            (void)inv_send_external_sensor_data(
+                INV_ELEMENT_1 | INV_ELEMENT_2 | INV_ELEMENT_3, INV_16_BIT);
+        }
+    }
 
 }
 
