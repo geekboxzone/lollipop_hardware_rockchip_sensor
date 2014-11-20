@@ -46,6 +46,8 @@ LOCAL_SHARED_LIBRARIES := liblog \
 	libcutils \
 	libutils
 
+LOCAL_C_INCLUDES += bionic/libc/kernel/common
+
 #LOCAL_LDFLAGS = $(LOCAL_PATH)/LibFusion_ARM_cpp.a
 LOCAL_LDFLAGS = $(LOCAL_PATH)/MEMSAlgLib_SI_ARM_cpp.a
 
