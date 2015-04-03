@@ -53,7 +53,7 @@ LOCAL_CFLAGS += -DCONFIG_MPU_SENSORS_MPU6050B1=1
 endif
 
 LOCAL_SRC_FILES := SensorBase.cpp
-LOCAL_SRC_FILES += MPLSensor.cpp
+LOCAL_SRC_FILES += MPLSensor.cpp MyTransform.cpp
 #LOCAL_SRC_FILES += MPLSensorSysApi.cpp
 
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/../mlsdk/platform/include
@@ -65,6 +65,7 @@ LOCAL_C_INCLUDES += $(LOCAL_PATH)/../mlsdk/external/aichi
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/../mlsdk/external/akmd
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/../mlsdk/external/memsic
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/../mlsdk/external/akm8963
+LOCAL_C_INCLUDES += ./frameworks/native/services/surfaceflinger
 
 LOCAL_SHARED_LIBRARIES := liblog libcutils libutils libdl
 LOCAL_SHARED_LIBRARIES += libmllite libmlplatform
@@ -84,6 +85,8 @@ LOCAL_PRELINK_MODULE := false
 include $(BUILD_SHARED_LIBRARY)
 
 endif # !TARGET_SIMULATOR
+
+# -------------------------------------- #
 
 # Build a temporary HAL that links the InvenSense .so
 include $(CLEAR_VARS)

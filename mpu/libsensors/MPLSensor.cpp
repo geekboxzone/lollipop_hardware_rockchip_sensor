@@ -17,6 +17,9 @@
 #define LOG_NDEBUG 0
 //see also the EXTRA_VERBOSE define in the MPLSensor.h header file
 
+#define ENABLE_DEBUG_LOG
+#include <log/custom_log.h>
+
 #include <fcntl.h>
 #include <errno.h>
 #include <math.h>
@@ -31,6 +34,7 @@
 #include <pthread.h>
 
 #include <cutils/log.h>
+#include <cutils/properties.h>
 #include <utils/KeyedVector.h>
 #include <utils/String8.h>
 #include <string.h>
@@ -345,9 +349,11 @@ MPLSensor::MPLSensor() : SensorBase(NULL, NULL),
     //rv = inv_dmp_start();
     //ALOGE_IF(rv != INV_SUCCESS, "Fatal error: could not start the DMP correctly. (code = %d)\n", rv);
     //dmp_started = true;
-
+    
+    mTransformForPreRotation.set(getOrientationOfDisplaySawBySfClient(), 0, 0);
+    mTransformForPreRotation.dump("transform_for_pre_rotation");
+    
     pthread_mutex_unlock(&mMplMutex);
-
 }
 
 MPLSensor::~MPLSensor()
@@ -853,6 +859,9 @@ void MPLSensor::gyroHandler(sensors_event_t* s, uint32_t* pending_mask,
         *pending_mask |= (1 << index);
 }
 
+/**
+ * 对 '*s' 中的 accel_sensor_event_data 再处理. 
+ */
 void MPLSensor::accelHandler(sensors_event_t* s, uint32_t* pending_mask,
                              int index)
 {
@@ -862,8 +871,19 @@ void MPLSensor::accelHandler(sensors_event_t* s, uint32_t* pending_mask,
     //res = inv_get_accel_float(s->acceleration.v);
     s->acceleration.v[0] = s->acceleration.v[0] * 9.81;
     s->acceleration.v[1] = s->acceleration.v[1] * 9.81;
-    s->acceleration.v[2] = s->acceleration.v[2] * 9.81;
+    s->acceleration.v[2] = -(s->acceleration.v[2] * 9.81);
+    
+    // 此时, accel_sensor_event_data 基于 original_display 的坐标系. 
+    // 参见 SensorEvent.java doc 中的 "Definition of the coordinate system used by the SensorEvent API."
+
+    /* 将 x, y 分量变换到基于 display_saw_by_sf_clients 的坐标系. */
+    vec2 src(s->acceleration.v[0], s->acceleration.v[1]);
+    vec2 dest = mTransformForPreRotation.transform(src);
+    s->acceleration.v[0] = dest.x;
+    s->acceleration.v[1] = dest.y;
+    
     //ALOGV_IF(EXTRA_VERBOSE, "accel data: %f %f %f", s->acceleration.v[0], s->acceleration.v[1], s->acceleration.v[2]);
+    // D("accel data: %f %f %f", s->acceleration.v[0], s->acceleration.v[1], s->acceleration.v[2]);
     s->acceleration.status = SENSOR_STATUS_ACCURACY_HIGH;
     if (res == INV_SUCCESS)
         *pending_mask |= (1 << index);
@@ -1284,7 +1304,7 @@ int MPLSensor::readEvents(sensors_event_t* data, int count)
     pthread_mutex_lock(&mMplMutex);
     for (int i = 0; i < numSensors; i++) {
         if (mEnabled & (1 << i)) {
-            CALL_MEMBER_FN(this,mHandlers[i])(mPendingEvents + i,
+            CALL_MEMBER_FN(this,mHandlers[i])(mPendingEvents + i,// .Q : mPendingEvents 中的本征的 sensor_event_data 在哪里赋值? 
                                               &mPendingMask, i);
             mPendingEvents[i].timestamp = tt;
         }
@@ -1383,3 +1403,29 @@ void MPLSensor::wakeEvent()
     mForceSleep = false;
     pthread_mutex_unlock(&mMplMutex);
 }
+
+/**
+ * 返回 display_saw_by_sf_clients 的 基于 original_display 的 orientation.
+ */
+MyTransform::orientation_flags_t MPLSensor::getOrientationOfDisplaySawBySfClient() 
+{
+    char value[PROPERTY_VALUE_MAX];
+
+    property_get("ro.sf.hwrotation", value, "0");
+    switch ( atoi(value) / 90 )
+    {
+        case 0:
+            return MyTransform::ROT_0;
+        case 1:
+            return MyTransform::ROT_90;
+        case 2:
+            return MyTransform::ROT_180;
+        case 3:
+            return MyTransform::ROT_270;
+        default:
+            E("bad value of ro.sf.hwrotation : %s", value);
+            return MyTransform::ROT_0;
+            break;
+    }
+}
+

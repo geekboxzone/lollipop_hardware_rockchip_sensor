@@ -29,6 +29,10 @@
 
 #include "ml.h"
 
+#include "MyTransform.h"
+
+using namespace android;
+
 /* comment this define to use raw (not bias compensated) gyro as 
    TYPE_GYROSCOPE */
 /* uncomment this define to use calibrated gyro as TYPE_GYROSCOPE */
@@ -161,6 +165,15 @@ protected:
     long int mOldEnabledMask;
     android::KeyedVector<int, int> mIrqFds;
 
+    /**
+     * 因为 pre_rotated 引入的, 必须对 accel_sensor_event_data 等数据的变换,
+     * 将其 value 变换到 基于 display_saw_by_sf_clients 定义的坐标.
+     */
+    MyTransform mTransformForPreRotation;
+    
+    /*-------------------------------------------------------*/
+
+    static MyTransform::orientation_flags_t getOrientationOfDisplaySawBySfClient();
 };
 
 extern "C" {

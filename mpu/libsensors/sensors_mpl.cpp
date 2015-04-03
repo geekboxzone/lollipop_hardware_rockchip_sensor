@@ -221,6 +221,13 @@ struct sensors_poll_context_t {
         ~sensors_poll_context_t();
     int activate(int handle, int enabled);
     int setDelay(int handle, int64_t ns);
+    /**
+     * poll events.
+     * @param data 
+     *      用于返回 sensor_event 数据. 
+     * @param count
+     *      .Q :
+     */
     int pollEvents(sensors_event_t* data, int count);
 
 private:
